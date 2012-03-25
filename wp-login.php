@@ -61,8 +61,6 @@ function login_header($title = 'Log In', $message = '', $wp_error = '') {
 	<meta http-equiv="Content-Type" content="<?php bloginfo('html_type'); ?>; charset=<?php bloginfo('charset'); ?>" />
 	<title><?php bloginfo('name'); ?> &rsaquo; <?php echo $title; ?></title>
 <?php
-	wp_admin_css( 'wp-admin', true );
-	wp_admin_css( 'colors-fresh', true );
 
 	if ( $is_iphone ) { ?>
 	<meta name="viewport" content="width=320; initial-scale=0.9; maximum-scale=1.0; user-scalable=0;" />
@@ -73,17 +71,24 @@ function login_header($title = 'Log In', $message = '', $wp_error = '') {
 	#login { padding: 20px 0; }
 	</style>
 <?php
-	}
+	} else { ?>
+	<img src="<?php echo $root_dir.'login/main.jpg'?>" class="test" alt="" />
+	<link rel="stylesheet" type="text/css" media="screen" href="login/login.css" />
+<?php
+	} ?>
 
-	do_action( 'login_enqueue_scripts' );
-	do_action( 'login_head' ); ?>
+
 </head>
 <body class="login">
+<?php if ( $is_iphone ) { ?>
 <?php   if ( !is_multisite() ) { ?>
 <div id="login"><h1><a href="<?php echo esc_url( apply_filters('login_headerurl', 'http://wordpress.org/') ); ?>" title="<?php echo esc_attr( apply_filters('login_headertitle', __( 'Powered by WordPress' ) ) ); ?>"><?php bloginfo('name'); ?></a></h1>
 <?php   } else { ?>
 <div id="login"><h1><a href="<?php echo esc_url( apply_filters('login_headerurl', network_home_url() ) ); ?>" title="<?php echo esc_attr( apply_filters('login_headertitle', $current_site->site_name ) ); ?>"><span class="hide"><?php bloginfo('name'); ?></span></a></h1>
-<?php   }
+<?php   } ?>
+<?php } else { ?>
+<div id="login">
+<?php }
 
 	$message = apply_filters('login_message', $message);
 	if ( !empty( $message ) ) echo $message . "\n";
@@ -120,7 +125,6 @@ function login_header($title = 'Log In', $message = '', $wp_error = '') {
  */
 function login_footer($input_id = '') {
 	?>
-	<p id="backtoblog"><a href="<?php echo esc_url( home_url( '/' ) ); ?>" title="<?php esc_attr_e( 'Are you lost?' ); ?>"><?php printf( __( '&larr; Back to %s' ), get_bloginfo( 'title', 'display' ) ); ?></a></p>
 	</div>
 
 <?php if ( !empty($input_id) ) : ?>
@@ -629,17 +633,31 @@ default:
 
 <form name="loginform" id="loginform" action="<?php echo esc_url( site_url( 'wp-login.php', 'login_post' ) ); ?>" method="post">
 	<p>
+<?php if ( $is_iphone ) : ?>
 		<label for="user_login"><?php _e('Username') ?><br />
-		<input type="text" name="log" id="user_login" class="input" value="<?php echo esc_attr($user_login); ?>" size="20" tabindex="10" /></label>
+<?php endif; ?>
+		<input type="text" name="log" id="user_login" class="input" value="<?php echo esc_attr($user_login); ?>" size="20" tabindex="10" />
+<?php if ( $is_iphone ) : ?>
+		</label>
+<?php endif; ?>
 	</p>
 	<p>
+<?php if ( $is_iphone ) : ?>
 		<label for="user_pass"><?php _e('Password') ?><br />
-		<input type="password" name="pwd" id="user_pass" class="input" value="" size="20" tabindex="20" /></label>
+<?php endif; ?>
+		<input type="password" name="pwd" id="user_pass" class="input" value="" size="20" tabindex="20" />
+<?php if ( $is_iphone ) : ?>
+		</label>
+<?php endif; ?>
 	</p>
 <?php do_action('login_form'); ?>
-	<p class="forgetmenot"><label for="rememberme"><input name="rememberme" type="checkbox" id="rememberme" value="forever" tabindex="90"<?php checked( $rememberme ); ?> /> <?php esc_attr_e('Remember Me'); ?></label></p>
+	<p class="forgetmenot"><label for="rememberme"><input name="rememberme" type="checkbox" id="rememberme" value="forever" tabindex="90"<?php checked( $rememberme ); ?> />ログイン状態を保存する</label></p>
 	<p class="submit">
+<?php if ( $is_iphone ) : ?>
 		<input type="submit" name="wp-submit" id="wp-submit" class="button-primary" value="<?php esc_attr_e('Log In'); ?>" tabindex="100" />
+<?php else : ?>
+		<input type="image" name="submit" src="login/dummy.gif" id="wp-submit" class="button-primary" alt="ログイン" />
+<?php endif; ?>
 <?php	if ( $interim_login ) { ?>
 		<input type="hidden" name="interim-login" value="1" />
 <?php	} else { ?>

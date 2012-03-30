@@ -72,7 +72,6 @@ function login_header($title = 'Log In', $message = '', $wp_error = '') {
 	</style>
 <?php
 	} else { ?>
-	<img src="<?php echo $root_dir.'login/main.jpg'?>" class="test" alt="" />
 	<link rel="stylesheet" type="text/css" media="screen" href="login/login.css" />
 <?php
 	} ?>
@@ -88,6 +87,7 @@ function login_header($title = 'Log In', $message = '', $wp_error = '') {
 <?php   } ?>
 <?php } else { ?>
 <div id="login">
+	<img src="<?php echo $root_dir.'login/main.jpg'?>" class="test" alt="" />
 <?php }
 
 	$message = apply_filters('login_message', $message);

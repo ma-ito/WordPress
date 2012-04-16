@@ -2,16 +2,20 @@
 define('BP_DISABLE_ADMIN_BAR', true);
 
 function cac_email_activity_checkbox() {
+	global $bp;
+
 	if ( !bp_is_groups_component() )
 		return;
 	if ( !is_super_admin() && $bp->groups->current_group->name === '社員会' )
 		return;
 	?>
 
-	<label for="cac_activity_mail">
-		グループメンバーに投稿内容をメールする
-		<input type="checkbox" name="cac_activity_mail" id="cac_activity_mail" value="mailme" />
-	</label>
+	<div id="activity_mail">
+		<label for="cac_activity_mail">
+			グループメンバーに投稿内容をメールする
+			<input type="checkbox" name="cac_activity_mail" id="cac_activity_mail" value="mailme" />
+		</label>
+	</div>
 	<?php
 }
 add_action( 'bp_activity_post_form_options', 'cac_email_activity_checkbox' );

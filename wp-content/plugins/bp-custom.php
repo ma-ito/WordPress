@@ -3,11 +3,13 @@ define('BP_DISABLE_ADMIN_BAR', true);
 
 function cac_email_activity_checkbox() {
 	global $bp;
+	global $current_user;
 
 	if ( !bp_is_groups_component() )
 		return;
-	if ( !is_super_admin() && $bp->groups->current_group->name === '社員会' )
-		return;
+	if ( !is_super_admin() && $current_user->roles[0] !== 'author' )
+		if ( $bp->groups->current_group->name === '社員会' )
+			return;
 	?>
 
 	<div id="activity_mail">

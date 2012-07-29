@@ -684,7 +684,7 @@ default:
 <?php do_action('login_form'); ?>
 	<p class="forgetmenot"><label for="rememberme"><input name="rememberme" type="checkbox" id="rememberme" value="forever" tabindex="90"<?php checked( $rememberme ); ?> /> <?php esc_attr_e('Remember Me'); ?></label></p>
 	<p class="submit">
-		<input type="submit" name="wp-submit" id="wp-submit" class="button-primary" value="<?php esc_attr_e('Log In'); ?>" tabindex="100" />
+		<input type="submit" name="wp-submit" id="wp-submit" class="button-primary" value="" tabindex="100" />
 <?php	if ( $interim_login ) { ?>
 		<input type="hidden" name="interim-login" value="1" />
 <?php	} else { ?>

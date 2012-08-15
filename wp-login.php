@@ -687,7 +687,7 @@ default:
 	<?php if ( wp_is_mobile() ) : ?>
 		<input type="submit" name="wp-submit" id="wp-submit" class="button-primary" value="<?php esc_attr_e('Log In'); ?>" tabindex="100" />
 	<?php else : ?>
-		<input type="submit" name="wp-submit" id="wp-submit" class="button-primary" value="" tabindex="100" />
+		<input type="image" name="submit" src="login/dummy.gif" id="wp-submit" class="button-primary" alt="ログイン" />
 	<?php endif; ?>
 <?php	if ( $interim_login ) { ?>
 		<input type="hidden" name="interim-login" value="1" />

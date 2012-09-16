@@ -1766,7 +1766,7 @@ msgstr "新しいパスワードの確認"
 
 #: wp-login.php:232
 msgid "To reset your password, visit the following address:"
-msgstr "パスワードをリセットするには、以下へアクセスしてください。"
+msgstr "パスワードのリセットを実行する場合は、以下のURLにアクセスしてください:"
 
 #: wp-login.php:479 wp-login.php:498
 msgid "Reset Password"
@@ -1786,11 +1786,11 @@ msgstr "パスワードをリセットしました。"
 
 #: wp-login.php:228
 msgid "Someone requested that the password be reset for the following account:"
-msgstr "だれかが次のアカウントのパスワードリセットをリクエストしました:"
+msgstr "パスワードをリセットしてもよろしいですか？"
 
 #: wp-login.php:231
 msgid "If this was a mistake, just ignore this email and nothing will happen."
-msgstr "もしこれが間違いだった場合は、このメールを無視すれば何も起こりません。"
+msgstr "もしこれが間違いだった場合は、このメールを無視すればキャンセルされます。"
 
 #: wp-login.php:479
 msgid "Enter your new password below."
@@ -5700,7 +5700,7 @@ msgstr "パスワードの初期化をする権限がありません。"
 
 #: wp-login.php:242
 msgid "[%s] Password Reset"
-msgstr "[%s] パスワードのリセット"
+msgstr "新しいパスワードの設定"
 
 #: wp-login.php:248
 msgid "The e-mail could not be sent."

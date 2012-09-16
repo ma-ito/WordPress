@@ -323,16 +323,12 @@ foreach ( array( 'user_login' => 'login', 'first_name' => 'firstname', 'last_nam
 	</tr>
 <?php if ( !is_multisite() ) { ?>
 	<tr class="form-field">
-		<th scope="row"><label for="first_name"><?php _e('First Name') ?> </label></th>
-		<td><input name="first_name" type="text" id="first_name" value="<?php echo esc_attr($new_user_firstname); ?>" /></td>
-	</tr>
-	<tr class="form-field">
 		<th scope="row"><label for="last_name"><?php _e('Last Name') ?> </label></th>
 		<td><input name="last_name" type="text" id="last_name" value="<?php echo esc_attr($new_user_lastname); ?>" /></td>
 	</tr>
 	<tr class="form-field">
-		<th scope="row"><label for="url"><?php _e('Website') ?></label></th>
-		<td><input name="url" type="text" id="url" class="code" value="<?php echo esc_attr($new_user_uri); ?>" /></td>
+		<th scope="row"><label for="first_name"><?php _e('First Name') ?> </label></th>
+		<td><input name="first_name" type="text" id="first_name" value="<?php echo esc_attr($new_user_firstname); ?>" /></td>
 	</tr>
 <?php if ( apply_filters('show_password_fields', true) ) : ?>
 	<tr class="form-field form-required">
@@ -347,7 +343,7 @@ foreach ( array( 'user_login' => 'login', 'first_name' => 'firstname', 'last_nam
 	</tr>
 	<tr>
 		<th scope="row"><label for="send_password"><?php _e('Send Password?') ?></label></th>
-		<td><label for="send_password"><input type="checkbox" name="send_password" id="send_password" <?php checked( $new_user_send_password ); ?> /> <?php _e('Send this password to the new user by email.'); ?></label></td>
+		<td><label for="send_password"><input type="checkbox" name="send_password" id="send_password" checked="checked" <?php checked( $new_user_send_password ); ?> /> <?php _e('Send this password to the new user by email.'); ?></label></td>
 	</tr>
 <?php endif; ?>
 <?php } // !is_multisite ?>

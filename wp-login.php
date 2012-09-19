@@ -61,12 +61,15 @@ function login_header($title = 'Log In', $message = '', $wp_error = '') {
 	<title><?php bloginfo('name'); ?> &rsaquo; <?php echo $title; ?></title>
 	<?php
 
+	wp_admin_css( 'wp-admin', true );
+	wp_admin_css( 'colors-fresh', true );
+
 	if ( wp_is_mobile() ) { ?>
 		<meta name="viewport" content="width=320; initial-scale=0.9; maximum-scale=1.0; user-scalable=0;" /><?php
-	} else { ?>
-		<img src="<?php echo $root_dir.'login/main.jpg'?>" class="test" alt="" />
-			<link rel="stylesheet" type="text/css" media="screen" href="login/login.css" /><?php
 	}
+
+	do_action( 'login_enqueue_scripts' );
+	do_action( 'login_head' );
 
 	if ( is_multisite() ) {
 		$login_header_url   = network_home_url();
@@ -86,10 +89,9 @@ function login_header($title = 'Log In', $message = '', $wp_error = '') {
 	?>
 	</head>
 	<body class="login<?php if ( wp_is_mobile() ) echo ' mobile'; ?>">
-	<?php if ( wp_is_mobile() ) { ?>
 	<div id="login">
-		<h1><a href="<?php echo esc_url( $login_header_url ); ?>" title="<?php echo esc_attr( $login_header_title ); ?>"><?php bloginfo( 'name' ); ?></a></h1><?php
-	}
+		<h1><a href="<?php echo esc_url( $login_header_url ); ?>" title="<?php echo esc_attr( $login_header_title ); ?>"><?php bloginfo( 'name' ); ?></a></h1>
+	<?php
 
 	unset( $login_header_url, $login_header_title );
 
@@ -130,7 +132,11 @@ function login_header($title = 'Log In', $message = '', $wp_error = '') {
 function login_footer($input_id = '') {
 	global $interim_login;
 
-	?>
+	// Don't allow interim logins to navigate away from the page.
+	if ( ! $interim_login ): ?>
+	<p id="backtoblog"><a href="<?php echo esc_url( home_url( '/' ) ); ?>" title="<?php esc_attr_e( 'Are you lost?' ); ?>"><?php printf( __( '&larr; Back to %s' ), get_bloginfo( 'title', 'display' ) ); ?></a></p>
+	<?php endif; ?>
+
 	</div>
 
 	<?php if ( !empty($input_id) ) : ?>
@@ -217,10 +223,11 @@ function retrieve_password() {
 		$wpdb->update($wpdb->users, array('user_activation_key' => $key), array('user_login' => $user_login));
 	}
 	$message = __('Someone requested that the password be reset for the following account:') . "\r\n\r\n";
+	$message .= network_home_url( '/' ) . "\r\n\r\n";
 	$message .= sprintf(__('Username: %s'), $user_login) . "\r\n\r\n";
 	$message .= __('If this was a mistake, just ignore this email and nothing will happen.') . "\r\n\r\n";
-	$message .= __('To reset your password, visit the following address:') . "\r\n";
-	$message .= network_site_url("wp-login.php?action=rp&key=$key&login=" . rawurlencode($user_login), 'login') . "\r\n";
+	$message .= __('To reset your password, visit the following address:') . "\r\n\r\n";
+	$message .= '<' . network_site_url("wp-login.php?action=rp&key=$key&login=" . rawurlencode($user_login), 'login') . ">\r\n";
 
 	if ( is_multisite() )
 		$blogname = $GLOBALS['current_site']->site_name;
@@ -663,31 +670,17 @@ default:
 
 <form name="loginform" id="loginform" action="<?php echo esc_url( site_url( 'wp-login.php', 'login_post' ) ); ?>" method="post">
 	<p>
-		<?php if ( wp_is_mobile() ) : ?>
-			<label for="user_login"><?php _e('Username') ?><br />
-		<?php endif; ?>
-		<input type="text" name="log" id="user_login" class="input" value="<?php echo esc_attr($user_login); ?>" size="20" tabindex="10" />
-		<?php if ( wp_is_mobile() ) : ?>
-			</label>
-		<?php endif; ?>
+		<label for="user_login"><?php _e('Username') ?><br />
+		<input type="text" name="log" id="user_login" class="input" value="<?php echo esc_attr($user_login); ?>" size="20" tabindex="10" /></label>
 	</p>
 	<p>
-		<?php if ( wp_is_mobile() ) : ?>
-			<label for="user_pass"><?php _e('Password') ?><br />
-		<?php endif; ?>
-		<input type="password" name="pwd" id="user_pass" class="input" value="" size="20" tabindex="20" />
-		<?php if ( wp_is_mobile() ) : ?>
-			</label>
-		<?php endif; ?>
+		<label for="user_pass"><?php _e('Password') ?><br />
+		<input type="password" name="pwd" id="user_pass" class="input" value="" size="20" tabindex="20" /></label>
 	</p>
 <?php do_action('login_form'); ?>
 	<p class="forgetmenot"><label for="rememberme"><input name="rememberme" type="checkbox" id="rememberme" value="forever" tabindex="90"<?php checked( $rememberme ); ?> /> <?php esc_attr_e('Remember Me'); ?></label></p>
 	<p class="submit">
-	<?php if ( wp_is_mobile() ) : ?>
 		<input type="submit" name="wp-submit" id="wp-submit" class="button-primary" value="<?php esc_attr_e('Log In'); ?>" tabindex="100" />
-	<?php else : ?>
-		<input type="image" name="submit" src="login/dummy.gif" id="wp-submit" class="button-primary" alt="ログイン" />
-	<?php endif; ?>
 <?php	if ( $interim_login ) { ?>
 		<input type="hidden" name="interim-login" value="1" />
 <?php	} else { ?>

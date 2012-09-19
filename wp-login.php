@@ -586,7 +586,7 @@ default:
 		if ( $secure_cookie && false !== strpos($redirect_to, 'wp-admin') )
 			$redirect_to = preg_replace('|^http://|', 'https://', $redirect_to);
 	} else {
-		$redirect_to = home_url();
+		$redirect_to = network_home_url();
 	}
 
 	$reauth = empty($_REQUEST['reauth']) ? false : true;

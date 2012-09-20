@@ -672,7 +672,7 @@ default:
 <form name="loginform" id="loginform" action="<?php echo esc_url( site_url( 'wp-login.php', 'login_post' ) ); ?>" method="post">
 	<p>
 		<?php if ( wp_is_mobile() ) : ?>
-			<label for="user_login"><?php _e('Username') ?><br />
+			<label for="user_login"><?php _e('Username or E-mail') ?><br />
 		<?php endif; ?>
 		<input type="text" name="log" id="user_login" class="input" value="<?php echo esc_attr($user_login); ?>" size="20" tabindex="10" />
 		<?php if ( wp_is_mobile() ) : ?>

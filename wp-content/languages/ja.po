@@ -5742,6 +5742,10 @@ msgstr "パスワード紛失"
 msgid "Username or E-mail:"
 msgstr "ユーザー名またはメールアドレス:"
 
+#: wp-login.php:437
+msgid "Username or E-mail"
+msgstr "ユーザー名またはメールアドレス"
+
 #: wp-login.php:442
 msgid "Get New Password"
 msgstr "新しいパスワードを取得"

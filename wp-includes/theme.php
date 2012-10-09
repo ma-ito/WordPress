@@ -1063,7 +1063,7 @@ function unregister_default_headers( $header ) {
  * @return string
  */
 function get_background_image() {
-	return get_theme_mod('background_image', get_theme_support( 'custom-background', 'default-image' ) );
+	return set_url_scheme( get_theme_mod('background_image', get_theme_support( 'custom-background', 'default-image' ) ) );
 }
 
 /**

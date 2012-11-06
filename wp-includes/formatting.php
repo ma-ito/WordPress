@@ -231,7 +231,7 @@ function wpautop($pee, $br = true) {
 	}
 	$pee = preg_replace("/\n\n+/", "\n\n", $pee); // take care of duplicates
 	$pee = preg_replace("/<code>\n+/", "<code>", $pee);
-	$pee = preg_replace("/<\/code>\n+/", "<\/code>", $pee);
+	$pee = preg_replace("/<\/code>\n+/", "</code>", $pee);
 	// make paragraphs, including one at the end
 	$pees = preg_split('/\n\s*\n/', $pee, -1, PREG_SPLIT_NO_EMPTY);
 	$pee = '';

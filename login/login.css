@@ -118,13 +118,19 @@ body {
 }
 #footer .padder {
 	margin: 15px auto;
-	width: 900px;
+	max-width: 940px;
 }
 #footer .copyright {
 	float: left;
+	max-width: 450px;
+	padding-left: 20px;
+	text-align: left;
 }
 #footer .contact-us {
 	float: right;
+	max-width: 450px;
+	padding-right: 20px;
+	text-align: right;
 }
 #footer img {
 	vertical-align: -3px;

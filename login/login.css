@@ -13,6 +13,9 @@ body {
 	margin: 0;
 	padding: 0;
 	height: 100%;
+	font-size: 14px;
+	font-family: Helvetica, Arial, Tahoma, Verdana, sans-serif, 'ヒラギノ角ゴ Pro W3', 'Hiragino Kaku Gothic Pro', 'メイリオ', Meiryo, Osaka, 'ＭＳ Ｐゴシック', 'MS PGothic';
+	line-height: 170%;
 }
 #container {
 	position: relative;

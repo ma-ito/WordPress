@@ -66,8 +66,7 @@ function login_header($title = 'Log In', $message = '', $wp_error = '') {
 		wp_admin_css( 'colors-fresh', true ); ?>
 		<meta name="viewport" content="width=320; initial-scale=0.9; maximum-scale=1.0; user-scalable=0;" /><?php
 	} else { ?>
-		<img src="<?php echo $root_dir.'login/main.jpg'?>" class="test" alt="" />
-			<link rel="stylesheet" type="text/css" media="screen" href="login/login.css" /><?php
+		<link rel="stylesheet" type="text/css" media="screen" href="login/login.css" /><?php
 	}
 
 	if ( wp_is_mobile() ) {
@@ -128,6 +127,8 @@ function login_header($title = 'Log In', $message = '', $wp_error = '') {
 		if ( !empty($messages) )
 			echo '<p class="message">' . apply_filters('login_messages', $messages) . "</p>\n";
 	}
+
+	?><div class="container"><?php
 } // End of login_header()
 
 /**
@@ -669,6 +670,7 @@ default:
 	$rememberme = ! empty( $_POST['rememberme'] );
 ?>
 
+<div id="widget">
 <form name="loginform" id="loginform" action="<?php echo esc_url( site_url( 'wp-login.php', 'login_post' ) ); ?>" method="post">
 	<p>
 		<?php if ( wp_is_mobile() ) : ?>
@@ -719,6 +721,8 @@ default:
 <?php endif; ?>
 </p>
 <?php } ?>
+</div>
+</div>
 
 <script type="text/javascript">
 function wp_attempt_focus(){

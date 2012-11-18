@@ -1,54 +1,102 @@
+* {
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
 body {
-	text-align:left;
+	background: #fff;
+	text-align:center;
 	-webkit-text-size-adjust: none;
 	margin: 0;
 	padding: 0;
+}
+.container {
+	background: url(main.jpg);
+	position: relative;
+	display: inline-block;
+	height: 643px;
+	font-size: 0;
+	line-height: 0;
+}
+.container:after {
+	position: absolute;
+	left: 0; top: 0; right: 0; bottom: 0;
+	-moz-box-shadow: inset 0px 0px 15px 15px #fff;
+	-webkit-box-shadow: inset 0px 0px 15px 15px #fff;
+	box-shadow: inset 0px 0px 15px 15px #fff;
+	content: " ";
+}
+
+#widget {
+	margin: 0 auto;
+	width: 979px;
 }
 .login {
 	font-size: 10pt;
 }
 .login #user_login {
 	display: block;
-	position: absolute;
+	position: relative;
+	padding: 2px 5px;
 	left: 735px;
-	top: 292px;
-	width: 185px;
+	top: 290px;
+	width: 180px;
 	height: 21px;
+	border: 1px solid #ccc;
+	z-index: 1;
 }
 .login #user_pass {
 	display: block;
-	position: absolute;
+	position: relative;
+	padding: 2px 5px;
 	left: 735px;
-	top: 347px;
-	width: 185px;
+	top: 318px;
+	width: 180px;
 	height: 21px;
+	border: 1px solid #ccc;
+	z-index: 1;
 }
-#nav {
-	display: block;
-	position: absolute;
-	left: 747px;
-	top: 395px;
-	width: 170px;
-	font-size: 9pt;
-	text-align: center;
+#loginform p.forgetmenot label {
+	cursor: pointer;
+}
+#rememberme {
+	cursor: pointer;
 }
 #loginform p.forgetmenot {
 	display: block;
-	position: absolute;
-	left: 760px;
-	top: 370px;
+	position: relative;
+	left: 735px;
+	top: 330px;
 	width: 185px;
 	font-size: 9pt;
+	z-index: 1;
+}
+#nav {
+	display: block;
+	position: relative;
+	left: 747px;
+	top: 315px;
+	width: 170px;
+	font-size: 9pt;
+	text-align: center;
+	z-index: 1;
 }
 .submit .button-primary {
 	display: block;
-	position: absolute;
+	position: relative;
 	left: 782px;
-	top: 430px;
+	top: 364px;
 	width: 98px;
 	height: 31px;
 	border: none 0px;
 	background-color: transparent;
+	z-index: 1;
 }
 
-
+#login_error {
+	display: block;
+	position: absolute;
+	width: 100%;
+	top: 610px;
+	z-index: 2;
+}

@@ -3,22 +3,31 @@
 	padding: 0;
 	border: 0;
 }
+html {
+	height: 100%;
+}
 body {
 	background: #fff;
 	text-align:center;
 	-webkit-text-size-adjust: none;
 	margin: 0;
 	padding: 0;
+	height: 100%;
 }
-.container {
-	background: url(main.jpg);
+#container {
+	position: relative;
+	height: 100%;
+	min-height: 700px;
+}
+#main{
 	position: relative;
 	display: inline-block;
-	height: 643px;
+	height: 100%;
+	min-height: 643px;
 	font-size: 0;
 	line-height: 0;
 }
-.container:after {
+#main:after {
 	position: absolute;
 	left: 0; top: 0; right: 0; bottom: 0;
 	-moz-box-shadow: inset 0px 0px 15px 15px #fff;
@@ -27,9 +36,11 @@ body {
 	content: " ";
 }
 
-#widget {
+#content {
+	background: url(main.jpg) no-repeat;
 	margin: 0 auto;
 	width: 979px;
+	height: 643px;
 }
 .login {
 	font-size: 10pt;
@@ -91,6 +102,43 @@ body {
 	border: none 0px;
 	background-color: transparent;
 	z-index: 1;
+}
+
+#footer {
+	position: absolute;
+	color: #fff;
+	background: #3c6094;
+	margin: 0 auto;
+	width: 100%;
+	height: 50px;
+	bottom: 0;
+	font-family: Arial, Tahoma, Verdana, sans-serif;
+	font-size: 14px;
+	line-height: 170%;
+}
+#footer .padder {
+	margin: 15px auto;
+	width: 900px;
+}
+#footer .copyright {
+	float: left;
+}
+#footer .contact-us {
+	float: right;
+}
+#footer img {
+	vertical-align: -3px;
+}
+#footer a {
+	color: #fff;
+	text-decoration: none;
+}
+#footer a p {
+	display: inline;
+	margin-left: 5px;
+}
+#footer a:hover {
+	text-decoration: underline;
 }
 
 #login_error {

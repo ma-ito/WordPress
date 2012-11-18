@@ -11,6 +11,22 @@
 /** Make sure that the WordPress bootstrap has run before continuing. */
 require( dirname(__FILE__) . '/wp-load.php' );
 
+function cc_login_footer() {
+	?>
+	<div id="footer">
+		<div class="padder">
+			<div class="copyright">
+				<p>&copy; <?php echo date('Y') ?> Clover Cafe. All rights reserved.</p>
+			</div>
+			<div class="contact-us">
+				<a href="mailto:<?php echo get_option('admin_email'); ?>"><img src="<?php echo $root_dir.'login/16_email.png'?>" alt="Email" /><p>お問い合わせ</p></a>
+			</div>
+		</div><!-- .padder -->
+	</div><!-- #footer -->
+	<?php
+}
+add_action( 'login_footer', 'cc_login_footer' );
+
 // Redirect to https login if forced to use SSL
 if ( force_ssl_admin() && !is_ssl() ) {
 	if ( 0 === strpos($_SERVER['REQUEST_URI'], 'http') ) {
@@ -128,7 +144,10 @@ function login_header($title = 'Log In', $message = '', $wp_error = '') {
 			echo '<p class="message">' . apply_filters('login_messages', $messages) . "</p>\n";
 	}
 
-	?><div class="container"><?php
+	?>
+	<div id="container">
+		<div id="main">
+<?php
 } // End of login_header()
 
 /**
@@ -140,7 +159,6 @@ function login_footer($input_id = '') {
 	global $interim_login;
 
 	?>
-	</div>
 
 	<?php if ( !empty($input_id) ) : ?>
 	<script type="text/javascript">
@@ -151,6 +169,7 @@ function login_footer($input_id = '') {
 
 	<?php do_action('login_footer'); ?>
 	<div class="clear"></div>
+	</div><!-- #container -->
 	</body>
 	</html>
 	<?php
@@ -670,7 +689,7 @@ default:
 	$rememberme = ! empty( $_POST['rememberme'] );
 ?>
 
-<div id="widget">
+<div id="content">
 <form name="loginform" id="loginform" action="<?php echo esc_url( site_url( 'wp-login.php', 'login_post' ) ); ?>" method="post">
 	<p>
 		<?php if ( wp_is_mobile() ) : ?>
@@ -721,8 +740,8 @@ default:
 <?php endif; ?>
 </p>
 <?php } ?>
-</div>
-</div>
+</div><!-- #content -->
+</div><!-- #main -->
 
 <script type="text/javascript">
 function wp_attempt_focus(){

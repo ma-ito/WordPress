@@ -44,10 +44,10 @@ body {
 #content .padder:after {
 	position: absolute;
 	height: 634px;
-	left: 0; top: 0; right: 0; bottom: -45px;
+	left: 0; top: 0; right: 0; bottom: 0;
 	-moz-box-shadow: inset 0px 0px 15px 15px #fff;
 	-webkit-box-shadow: inset 0px 0px 15px 15px #fff;
-	box-shadow: inset 0px 0px 15px 15px #fff;
+	box-shadow: inset 0px 0px 15px 17px #fff;
 	content: " ";
 }
 #content:before, #content:after {
@@ -57,7 +57,7 @@ body {
 	-webkit-box-shadow:0 0 20px rgba(0,0,0,0.8);
 	-moz-box-shadow:0 0 20px rgba(0,0,0,0.8);
 	box-shadow:0 0 20px rgba(0,0,0,0.8);
-	top:50%;
+	top:0;
 	bottom:0;
 	left:10px;
 	right:10px;

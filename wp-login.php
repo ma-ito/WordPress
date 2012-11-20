@@ -690,6 +690,7 @@ default:
 ?>
 
 <div id="content">
+<div class="padder">
 <form name="loginform" id="loginform" action="<?php echo esc_url( site_url( 'wp-login.php', 'login_post' ) ); ?>" method="post">
 	<p>
 		<?php if ( wp_is_mobile() ) : ?>
@@ -740,6 +741,7 @@ default:
 <?php endif; ?>
 </p>
 <?php } ?>
+</div><!-- .padder -->
 </div><!-- #content -->
 </div><!-- #main -->
 

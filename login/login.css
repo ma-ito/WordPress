@@ -7,8 +7,10 @@ html {
 	height: 100%;
 }
 body {
-	background: #fff;
-	text-align:center;
+	background-color: #fff;
+	background-image: url(light_wool.png);
+	background-attachment: fixed;
+	text-align: center;
 	-webkit-text-size-adjust: none;
 	margin: 0;
 	padding: 0;
@@ -25,25 +27,51 @@ body {
 #main{
 	position: relative;
 	display: inline-block;
-	height: 100%;
 	min-height: 643px;
 	font-size: 0;
 	line-height: 0;
 }
-#main:after {
+#content {
+	position:relative;
+	background: url(main.jpg) no-repeat;
+	margin: 0 auto;
+	width: 970px;
+	height: 634px;
+	-webkit-box-shadow:0 1px 4px rgba(0, 0, 0, 0.3), 0 0 40px rgba(0, 0, 0, 0.1) inset;
+	-moz-box-shadow:0 1px 4px rgba(0, 0, 0, 0.3), 0 0 40px rgba(0, 0, 0, 0.1) inset;
+	box-shadow:0 1px 4px rgba(0, 0, 0, 0.3), 0 0 40px rgba(0, 0, 0, 0.1) inset;
+}
+#content .padder:after {
 	position: absolute;
-	left: 0; top: 0; right: 0; bottom: 0;
+	height: 634px;
+	left: 0; top: 0; right: 0; bottom: -45px;
 	-moz-box-shadow: inset 0px 0px 15px 15px #fff;
 	-webkit-box-shadow: inset 0px 0px 15px 15px #fff;
 	box-shadow: inset 0px 0px 15px 15px #fff;
 	content: " ";
 }
-
-#content {
-	background: url(main.jpg) no-repeat;
-	margin: 0 auto;
-	width: 979px;
-	height: 643px;
+#content:before, #content:after {
+	content:"";
+	position:absolute;
+	z-index:-1;
+	-webkit-box-shadow:0 0 20px rgba(0,0,0,0.8);
+	-moz-box-shadow:0 0 20px rgba(0,0,0,0.8);
+	box-shadow:0 0 20px rgba(0,0,0,0.8);
+	top:50%;
+	bottom:0;
+	left:10px;
+	right:10px;
+	-moz-border-radius:100px / 10px;
+	border-radius:100px / 10px;
+}
+#content:after {
+	right:10px;
+	left:auto;
+	-webkit-transform:skew(8deg) rotate(3deg);
+	-moz-transform:skew(8deg) rotate(3deg);
+	-ms-transform:skew(8deg) rotate(3deg);
+	-o-transform:skew(8deg) rotate(3deg);
+	transform:skew(8deg) rotate(3deg);
 }
 .login {
 	font-size: 10pt;

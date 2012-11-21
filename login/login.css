@@ -22,7 +22,7 @@ body {
 #container {
 	position: relative;
 	height: 100%;
-	min-height: 700px;
+	min-height: 720px;
 }
 #main{
 	position: relative;
@@ -126,7 +126,7 @@ body {
 .submit .button-primary {
 	display: block;
 	position: relative;
-	left: 782px;
+	left: 783px;
 	top: 364px;
 	width: 98px;
 	height: 31px;
@@ -138,16 +138,18 @@ body {
 #footer {
 	position: absolute;
 	color: #fff;
-	background: #3c6094;
+	background: #3c6094 url( 30n.png );
+	box-shadow: inset 0 10px 22px rgba(0,0,0,0.3);
 	margin: 0 auto;
 	width: 100%;
-	height: 50px;
+	height: 70px;
 	bottom: 0;
 	font-size: 14px;
 	line-height: 170%;
 }
 #footer .padder {
 	margin: 15px auto;
+	padding-top: 10px;
 	max-width: 940px;
 }
 #footer .copyright {

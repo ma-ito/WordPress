@@ -5967,7 +5967,7 @@ msgstr "強度インジケータ"
 
 #: wp-login.php:495
 msgid "Hint: The password should be at least seven characters long. To make it stronger, use upper and lower case letters, numbers and symbols like ! \" ? $ % ^ &amp; )."
-msgstr "ヒント: パスワードは7文字以上にしてください。より強力にするには、大文字と小文字のアルファベット、数字や ! \" ? $ % ^ &amp; ) などの記号を組み合わせて使ってください。"
+msgstr "ヒント: パスワードは7文字以上かつ普通以上の強度になるものを設定してください。大文字と小文字のアルファベット、<br />数字や ! \" ? $ % ^ &amp; ) などの記号を組み合わせると、より強力になります。"
 
 #: wp-includes/script-loader.php:260
 msgid "Very weak"

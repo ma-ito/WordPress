@@ -141,7 +141,7 @@ function login_header($title = 'Log In', $message = '', $wp_error = '') {
 		if ( !empty($errors) )
 			echo '<div id="login_error">' . apply_filters('login_errors', $errors) . "</div>\n";
 		if ( !empty($messages) )
-			echo '<p class="message">' . apply_filters('login_messages', $messages) . "</p>\n";
+			echo '<div id="message">' . apply_filters('login_messages', $messages) . "</div>\n";
 	}
 
 	?>

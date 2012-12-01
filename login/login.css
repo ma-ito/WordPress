@@ -132,6 +132,7 @@ body {
 	height: 31px;
 	border: none 0px;
 	background-color: transparent;
+	outline: none;
 	z-index: 1;
 }
 

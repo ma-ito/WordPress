@@ -12,7 +12,7 @@
 require( dirname(__FILE__) . '/wp-load.php' );
 
 function cc_login_footer() {
-	?>
+	if ( !wp_is_mobile() ) : ?>
 	<div id="footer">
 		<div class="padder">
 			<div class="copyright">
@@ -23,7 +23,7 @@ function cc_login_footer() {
 			</div>
 		</div><!-- .padder -->
 	</div><!-- #footer -->
-	<?php
+	<?php endif;
 }
 add_action( 'login_footer', 'cc_login_footer' );
 

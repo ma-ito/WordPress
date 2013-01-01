@@ -1,0 +1,192 @@
+* {
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+html {
+	height: 100%;
+}
+body {
+	background-color: #fff;
+	background-image: url(light_wool.png);
+	background-attachment: fixed;
+	text-align: center;
+	-webkit-text-size-adjust: none;
+	margin: 0;
+	padding: 0;
+	height: 100%;
+	font-size: 14px;
+	font-family: Helvetica, Arial, 'ヒラギノ角ゴ Pro W3', 'Hiragino Kaku Gothic Pro', 'メイリオ', Meiryo, 'ＭＳ Ｐゴシック', 'MS PGothic', Osaka;
+	line-height: 170%;
+}
+#container {
+	position: relative;
+	height: 100%;
+	min-height: 720px;
+}
+#main{
+	position: relative;
+	display: inline-block;
+	min-height: 643px;
+	font-size: 0;
+	line-height: 0;
+}
+#content {
+	position:relative;
+	background: url(main.jpg) no-repeat;
+	margin: 0 auto;
+	width: 970px;
+	height: 634px;
+	-webkit-box-shadow:0 1px 4px rgba(0, 0, 0, 0.3), 0 0 40px rgba(0, 0, 0, 0.1) inset;
+	-moz-box-shadow:0 1px 4px rgba(0, 0, 0, 0.3), 0 0 40px rgba(0, 0, 0, 0.1) inset;
+	box-shadow:0 1px 4px rgba(0, 0, 0, 0.3), 0 0 40px rgba(0, 0, 0, 0.1) inset;
+}
+#content .padder:after {
+	position: absolute;
+	height: 634px;
+	left: 0; top: 0; right: 0; bottom: 0;
+	-moz-box-shadow: inset 0px 0px 15px 15px #fff;
+	-webkit-box-shadow: inset 0px 0px 15px 15px #fff;
+	box-shadow: inset 0px 0px 15px 17px #fff;
+	content: "";
+}
+#content:before, #content:after {
+	content:"";
+	position:absolute;
+	z-index:-1;
+	-webkit-box-shadow:0 0 20px rgba(0,0,0,0.8);
+	-moz-box-shadow:0 0 20px rgba(0,0,0,0.8);
+	box-shadow:0 0 20px rgba(0,0,0,0.8);
+	top:0;
+	bottom:0;
+	left:10px;
+	right:10px;
+	-moz-border-radius:100px / 10px;
+	border-radius:100px / 10px;
+}
+#content:after {
+	right:10px;
+	left:auto;
+	-webkit-transform:skew(8deg) rotate(3deg);
+	-moz-transform:skew(8deg) rotate(3deg);
+	-ms-transform:skew(8deg) rotate(3deg);
+	-o-transform:skew(8deg) rotate(3deg);
+	transform:skew(8deg) rotate(3deg);
+}
+.login {
+	font-size: 10pt;
+}
+.login #user_login {
+	display: block;
+	position: relative;
+	padding: 2px 5px;
+	left: 735px;
+	top: 290px;
+	width: 180px;
+	height: 21px;
+	border: 1px solid #ccc;
+	z-index: 1;
+}
+.login #user_pass {
+	display: block;
+	position: relative;
+	padding: 2px 5px;
+	left: 735px;
+	top: 318px;
+	width: 180px;
+	height: 21px;
+	border: 1px solid #ccc;
+	z-index: 1;
+}
+#loginform p.forgetmenot label {
+	cursor: pointer;
+}
+#rememberme {
+	cursor: pointer;
+}
+#loginform p.forgetmenot {
+	display: block;
+	position: relative;
+	left: 735px;
+	top: 330px;
+	width: 185px;
+	font-size: 9pt;
+	z-index: 1;
+}
+#nav {
+	display: block;
+	position: relative;
+	left: 747px;
+	top: 315px;
+	width: 170px;
+	font-size: 9pt;
+	text-align: center;
+	z-index: 1;
+}
+.submit .button-primary {
+	display: block;
+	position: relative;
+	left: 783px;
+	top: 364px;
+	width: 98px;
+	height: 31px;
+	border: none 0px;
+	background-color: transparent;
+	outline: none;
+	z-index: 1;
+}
+
+#footer {
+	position: absolute;
+	color: #fff;
+	background: #3c6094 url( 100n.png );
+	-webkit-box-shadow: inset 0 5px 20px rgba(0,0,0,0.3);
+	-moz-box-shadow: inset 0 5px 20px rgba(0,0,0,0.3);
+	box-shadow: inset 0 5px 20px rgba(0,0,0,0.3);
+	margin: 0 auto;
+	width: 100%;
+	height: 70px;
+	bottom: 0;
+	font-size: 14px;
+	line-height: 170%;
+}
+#footer .padder {
+	margin: 15px auto;
+	padding-top: 10px;
+	max-width: 940px;
+}
+#footer .copyright {
+	float: left;
+	max-width: 450px;
+	padding-left: 20px;
+	text-align: left;
+}
+#footer .contact-us {
+	float: right;
+	max-width: 450px;
+	padding-right: 20px;
+	text-align: right;
+}
+#footer img {
+	vertical-align: -3px;
+}
+#footer a {
+	color: #fff;
+	text-decoration: none;
+}
+#footer a p {
+	display: inline;
+	margin-left: 5px;
+}
+#footer a:hover {
+	text-decoration: underline;
+}
+
+#message,
+#login_error {
+	display: block;
+	position: absolute;
+	width: 100%;
+	top: 610px;
+	z-index: 2;
+}

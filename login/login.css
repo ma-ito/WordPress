@@ -19,35 +19,46 @@ body {
 	font-family: Helvetica, Arial, 'ヒラギノ角ゴ Pro W3', 'Hiragino Kaku Gothic Pro', 'メイリオ', Meiryo, 'ＭＳ Ｐゴシック', 'MS PGothic', Osaka;
 	line-height: 170%;
 }
+
+a {
+	color: #1F5CB2;
+	text-decoration: none;
+}
+a:hover {
+	color: #FF4C18;
+	text-decoration: underline;
+}
+
 #container {
 	position: relative;
 	height: 100%;
-	min-height: 720px;
+	min-height: 745px;
 }
 #main{
 	position: relative;
 	display: inline-block;
-	min-height: 643px;
+	min-height: 664px;
 	font-size: 0;
 	line-height: 0;
 }
 #content {
 	position:relative;
 	background: url(main.jpg) no-repeat;
+	background-color: #fff;
 	margin: 0 auto;
-	width: 970px;
-	height: 634px;
-	-webkit-box-shadow:0 1px 4px rgba(0, 0, 0, 0.3), 0 0 40px rgba(0, 0, 0, 0.1) inset;
-	-moz-box-shadow:0 1px 4px rgba(0, 0, 0, 0.3), 0 0 40px rgba(0, 0, 0, 0.1) inset;
-	box-shadow:0 1px 4px rgba(0, 0, 0, 0.3), 0 0 40px rgba(0, 0, 0, 0.1) inset;
+	width: 980px;
+	height: 664px;
+	-webkit-box-shadow:0 1px 4px rgba(0, 0, 0, 0.3), 0 0 40px rgba(0, 0, 0, 0) inset;
+	-moz-box-shadow:0 1px 4px rgba(0, 0, 0, 0.3), 0 0 40px rgba(0, 0, 0, 0) inset;
+	box-shadow:0 1px 4px rgba(0, 0, 0, 0.3), 0 0 40px rgba(0, 0, 0, 0) inset;
 }
 #content .padder:after {
 	position: absolute;
 	height: 634px;
 	left: 0; top: 0; right: 0; bottom: 0;
-	-moz-box-shadow: inset 0px 0px 15px 15px #fff;
-	-webkit-box-shadow: inset 0px 0px 15px 15px #fff;
-	box-shadow: inset 0px 0px 15px 17px #fff;
+	-moz-box-shadow: inset 0px 0px 13px 19px #fff;
+	-webkit-box-shadow: inset 0px 0px 13px 19px #fff;
+	box-shadow: inset 0px 0px 13px 19px #fff;
 	content: "";
 }
 #content:before, #content:after {
@@ -80,9 +91,9 @@ body {
 	display: block;
 	position: relative;
 	padding: 2px 5px;
-	left: 735px;
-	top: 290px;
-	width: 180px;
+	left: 727px;
+	top: 300px;
+	width: 178px;
 	height: 21px;
 	border: 1px solid #ccc;
 	z-index: 1;
@@ -91,9 +102,9 @@ body {
 	display: block;
 	position: relative;
 	padding: 2px 5px;
-	left: 735px;
-	top: 318px;
-	width: 180px;
+	left: 727px;
+	top: 326px;
+	width: 178px;
 	height: 21px;
 	border: 1px solid #ccc;
 	z-index: 1;
@@ -107,8 +118,8 @@ body {
 #loginform p.forgetmenot {
 	display: block;
 	position: relative;
-	left: 735px;
-	top: 330px;
+	left: 727px;
+	top: 336px;
 	width: 185px;
 	font-size: 9pt;
 	z-index: 1;
@@ -116,8 +127,8 @@ body {
 #nav {
 	display: block;
 	position: relative;
-	left: 747px;
-	top: 315px;
+	left: 739px;
+	top: 321px;
 	width: 170px;
 	font-size: 9pt;
 	text-align: center;
@@ -186,7 +197,8 @@ body {
 #login_error {
 	display: block;
 	position: absolute;
+	font-size: 14px;
 	width: 100%;
-	top: 610px;
+	top: 625px;
 	z-index: 2;
 }

@@ -3660,7 +3660,7 @@ msgstr "<strong>エラー</strong>: パスワードを入力してください�
 
 #: wp-includes/user.php:90
 msgid "<strong>ERROR</strong>: Invalid username. <a href=\"%s\" title=\"Password Lost and Found\">Lost your password</a>?"
-msgstr "<strong>エラー</strong>: 無効なユーザー名です。<a href=\"%s\" title=\"パスワード再発行\">パスワードをお忘れですか</a> ?"
+msgstr "<strong>エラー</strong>: 無効なユーザー名です。<a href=\"%s\">パスワードをお忘れですか</a> ?"
 
 #: wp-includes/user.php:95
 msgid "<strong>ERROR</strong>: Your account has been marked as a spammer."
@@ -3672,7 +3672,7 @@ msgstr "サイトを停止しました。"
 
 #: wp-includes/user.php:110
 msgid "<strong>ERROR</strong>: The password you entered for the username <strong>%1$s</strong> is incorrect. <a href=\"%2$s\" title=\"Password Lost and Found\">Lost your password</a>?"
-msgstr "<strong>エラー</strong>: ユーザー名 <strong>%1$s</strong> のパスワードが間違っています。<a href=\"%2$s\" title=\"パスワード紛失\">パスワードをお忘れですか</a> ?"
+msgstr "<strong>エラー</strong>: ユーザー名 <strong>%1$s</strong> のパスワードが間違っています。<a href=\"%2$s\">パスワードをお忘れですか</a> ?"
 
 #: wp-includes/user.php:135
 msgid "Please log in again."

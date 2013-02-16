@@ -8,7 +8,7 @@ html {
 }
 body {
 	background-color: #fff;
-	background-image: url(light_wool.png);
+	background-image: url(background.png);
 	background-attachment: fixed;
 	text-align: center;
 	-webkit-text-size-adjust: none;

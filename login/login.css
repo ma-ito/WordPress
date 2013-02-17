@@ -9,6 +9,8 @@ html {
 body {
 	background-color: #fff;
 	background-image: url(background.png);
+	background-repeat: repeat;
+	background-position: top center;
 	background-attachment: fixed;
 	text-align: center;
 	-webkit-text-size-adjust: none;

@@ -618,6 +618,12 @@ default:
 		$redirect_to = network_home_url();
 	}
 
+	// Redirect to the contents page If the user is already logged in
+	if ( is_user_logged_in() ) {
+		wp_redirect( $redirect_to );
+		exit();
+	}
+
 	$reauth = empty($_REQUEST['reauth']) ? false : true;
 
 	// If the user was redirected to a secure login form from a non-secure admin page, and secure login is required but secure admin is not, then don't use a secure

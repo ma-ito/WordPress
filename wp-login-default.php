@@ -209,6 +209,7 @@ function retrieve_password() {
 	// redefining user_login ensures we return the right case in the email
 	$user_login = $user_data->user_login;
 	$user_email = $user_data->user_email;
+	$display_name = $user_data->display_name;
 
 	do_action('retreive_password', $user_login);  // Misspelled and deprecated
 	do_action('retrieve_password', $user_login);
@@ -228,12 +229,11 @@ function retrieve_password() {
 		// Now insert the new md5 key into the db
 		$wpdb->update($wpdb->users, array('user_activation_key' => $key), array('user_login' => $user_login));
 	}
-	$message = __('Someone requested that the password be reset for the following account:') . "\r\n\r\n";
-	$message .= network_home_url( '/' ) . "\r\n\r\n";
-	$message .= sprintf(__('Username: %s'), $user_login) . "\r\n\r\n";
-	$message .= __('If this was a mistake, just ignore this email and nothing will happen.') . "\r\n\r\n";
-	$message .= __('To reset your password, visit the following address:') . "\r\n\r\n";
-	$message .= '<' . network_site_url("wp-login-default.php?action=rp&key=$key&login=" . rawurlencode($user_login), 'login') . ">\r\n";
+
+	$message = 'こんにちは。クローバーカフェです。' . "\r\n";
+	$message .= sprintf(__('%sさんのパスワードリセット要求を受付けました。'), $display_name) . "\r\n\r\n";
+	$message .= __('To reset your password, visit the following address:') . "\r\n";
+	$message .= network_site_url("wp-eogin-default.php?actioneve_password_message=rp&key=$key&login=" . rawurlencode($user_login), 'login') . "\r\n";
 
 	if ( is_multisite() )
 		$blogname = $GLOBALS['current_site']->site_name;

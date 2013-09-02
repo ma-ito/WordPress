@@ -3823,11 +3823,11 @@ msgstr "もしこれが間違いだった場合は、このメールを無視す
 
 #: wp-login.php:235
 msgid "To reset your password, visit the following address:"
-msgstr "パスワードをリセットするには、以下へアクセスしてください。"
+msgstr "以下のURLにアクセスして、新しいパスワードを設定してください。"
 
 #: wp-login.php:245
 msgid "[%s] Password Reset"
-msgstr "[%s] パスワードのリセット"
+msgstr "パスワードのリセット"
 
 #: wp-login.php:251
 msgid "The e-mail could not be sent."

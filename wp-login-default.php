@@ -239,8 +239,7 @@ function retrieve_password() {
 		$wpdb->update($wpdb->users, array('user_activation_key' => $key), array('user_login' => $user_login));
 	}
 
-	$message = 'こんにちは。クローバーカフェです。' . "\r\n";
-	$message .= sprintf(__('%sさんのパスワードリセット要求を受付けました。'), $display_name) . "\r\n\r\n";
+	$message = sprintf(__('%sさんのパスワードリセット要求を受付けました。'), $display_name) . "\r\n\r\n";
 	$message .= __('To reset your password, visit the following address:') . "\r\n";
 	$message .= network_site_url("wp-login-default.php?actioneve_password_message=rp&key=$key&login=" . rawurlencode($user_login), 'login') . "\r\n";
 

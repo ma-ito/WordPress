@@ -65,7 +65,16 @@ function login_header($title = 'Log In', $message = '', $wp_error = '') {
 	wp_admin_css( 'colors-fresh', true );
 
 	if ( wp_is_mobile() ) { ?>
-		<meta name="viewport" content="width=320; initial-scale=0.9; maximum-scale=1.0; user-scalable=0;" /><?php
+		<meta name="viewport" content="width=320, initial-scale=0.9, maximum-scale=1.0, user-scalable=0" /><?php
+	}
+
+	// Remove all stored post data on logging out.
+	// This could be added by add_action('login_head'...) like wp_shake_js()
+	// but maybe better if it's not removable by plugins
+	if ( 'loggedout' == $wp_error->get_error_code() ) {
+		?>
+		<script>if("sessionStorage" in window){try{for(var key in sessionStorage){if(key.indexOf("wp-autosave-")!=-1){sessionStorage.removeItem(key)}}}catch(e){}};</script>
+		<?php
 	}
 
 	do_action( 'login_enqueue_scripts' );
@@ -393,7 +402,7 @@ case 'postpass' :
 	$hasher = new PasswordHash( 8, true );
 
 	// 10 days
-	setcookie( 'wp-postpass_' . COOKIEHASH, $hasher->HashPassword( stripslashes( $_POST['post_password'] ) ), time() + 10 * DAY_IN_SECONDS, COOKIEPATH );
+	setcookie( 'wp-postpass_' . COOKIEHASH, $hasher->HashPassword( wp_unslash( $_POST['post_password'] ) ), time() + 10 * DAY_IN_SECONDS, COOKIEPATH );
 
 	wp_safe_redirect( wp_get_referer() );
 	exit();
@@ -701,12 +710,11 @@ default:
 
 <?php if ( !$interim_login ) { ?>
 <p id="nav">
-<?php if ( isset($_GET['checkemail']) && in_array( $_GET['checkemail'], array('confirm', 'newpass') ) ) : ?>
-<?php elseif ( get_option('users_can_register') ) : ?>
-<a href="<?php echo esc_url( site_url( 'wp-login.php?action=register', 'login' ) ); ?>"><?php _e( 'Register' ); ?></a> |
-<a href="<?php echo esc_url( wp_lostpassword_url() ); ?>" title="<?php esc_attr_e( 'Password Lost and Found' ); ?>"><?php _e( 'Lost your password?' ); ?></a>
-<?php else : ?>
-<a href="<?php echo esc_url( wp_lostpassword_url() ); ?>" title="<?php esc_attr_e( 'Password Lost and Found' ); ?>"><?php _e( 'Lost your password?' ); ?></a>
+<?php if ( ! isset( $_GET['checkemail'] ) || ! in_array( $_GET['checkemail'], array( 'confirm', 'newpass' ) ) ) : ?>
+	<?php if ( get_option( 'users_can_register' ) ) : ?>
+		<?php echo apply_filters( 'register', sprintf( '<a href="%s">%s</a>', esc_url( wp_registration_url() ), __( 'Register' ) ) ); ?> |
+	<?php endif; ?>
+	<a href="<?php echo esc_url( wp_lostpassword_url() ); ?>" title="<?php esc_attr_e( 'Password Lost and Found' ); ?>"><?php _e( 'Lost your password?' ); ?></a>
 <?php endif; ?>
 </p>
 <?php } ?>

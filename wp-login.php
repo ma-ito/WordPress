@@ -79,10 +79,11 @@ function login_header($title = 'Log In', $message = '', $wp_error = '') {
 
 	if ( wp_is_mobile() ) {
 		wp_admin_css( 'wp-admin', true );
-		wp_admin_css( 'colors-fresh', true );
+		wp_admin_css( 'colors-fresh', true ); ?>
 		<meta name="viewport" content="width=320, initial-scale=0.9, maximum-scale=1.0, user-scalable=0" /><?php
 	} else { ?>
 		<link rel="stylesheet" type="text/css" media="screen" href="login/login.css" /><?php
+	}
 
 	// Remove all stored post data on logging out.
 	// This could be added by add_action('login_head'...) like wp_shake_js()

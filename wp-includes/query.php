@@ -246,10 +246,10 @@ function is_category( $category = '' ) {
  * @since 2.3.0
  * @uses $wp_query
  *
- * @param mixed $slug Optional. Tag slug or array of slugs.
+ * @param mixed $tag Optional. Tag ID, name, slug, or array of Tag IDs, names, and slugs.
  * @return bool
  */
-function is_tag( $slug = '' ) {
+function is_tag( $tag = '' ) {
 	global $wp_query;
 
 	if ( ! isset( $wp_query ) ) {
@@ -257,7 +257,7 @@ function is_tag( $slug = '' ) {
 		return false;
 	}
 
-	return $wp_query->is_tag( $slug );
+	return $wp_query->is_tag( $tag );
 }
 
 /**
@@ -867,6 +867,15 @@ class WP_Query {
 	var $meta_query = false;
 
 	/**
+	 * Date query container
+	 *
+	 * @since 3.7.0
+	 * @access public
+	 * @var object WP_Date_Query
+	 */
+	var $date_query = false;
+
+	/**
 	 * Holds the data for a single object that is queried.
 	 *
 	 * Holds the contents of a post, page, category, attachment.
@@ -932,11 +941,11 @@ class WP_Query {
 	var $in_the_loop = false;
 
 	/**
-	 * The current post ID.
+	 * The current post.
 	 *
 	 * @since 1.5.0
 	 * @access public
-	 * @var object
+	 * @var WP_Post
 	 */
 	var $post;
 
@@ -1387,6 +1396,7 @@ class WP_Query {
 			, 'tag'
 			, 'cat'
 			, 'tag_id'
+			, 'author'
 			, 'author_name'
 			, 'feed'
 			, 'tb'
@@ -1407,7 +1417,8 @@ class WP_Query {
 		}
 
 		$array_keys = array( 'category__in', 'category__not_in', 'category__and', 'post__in', 'post__not_in',
-			'tag__in', 'tag__not_in', 'tag__and', 'tag_slug__in', 'tag_slug__and', 'post_parent__in', 'post_parent__not_in' );
+			'tag__in', 'tag__not_in', 'tag__and', 'tag_slug__in', 'tag_slug__and', 'post_parent__in', 'post_parent__not_in',
+			'author__in', 'author__not_in' );
 
 		foreach ( $array_keys as $key ) {
 			if ( !isset($array[$key]) )
@@ -1445,9 +1456,10 @@ class WP_Query {
 		$qv['monthnum'] = absint($qv['monthnum']);
 		$qv['day'] = absint($qv['day']);
 		$qv['w'] = absint($qv['w']);
-		$qv['m'] = absint($qv['m']);
+		$qv['m'] = preg_replace( '|[^0-9]|', '', $qv['m'] );
 		$qv['paged'] = absint($qv['paged']);
 		$qv['cat'] = preg_replace( '|[^0-9,-]|', '', $qv['cat'] ); // comma separated list of positive or negative integers
+		$qv['author'] = preg_replace( '|[^0-9,-]|', '', $qv['author'] ); // comma separated list of positive or negative integers
 		$qv['pagename'] = trim( $qv['pagename'] );
 		$qv['name'] = trim( $qv['name'] );
 		if ( '' !== $qv['hour'] ) $qv['hour'] = absint($qv['hour']);
@@ -1501,15 +1513,24 @@ class WP_Query {
 
 			if ( $qv['day'] ) {
 				if ( ! $this->is_date ) {
-					$this->is_day = true;
-					$this->is_date = true;
+					$date = sprintf( '%04d-%02d-%02d', $qv['year'], $qv['monthnum'], $qv['day'] );
+					if ( $qv['monthnum'] && $qv['year'] && ! wp_checkdate( $qv['monthnum'], $qv['day'], $qv['year'], $date ) ) {
+						$qv['error'] = '404';
+					} else {
+						$this->is_day = true;
+						$this->is_date = true;
+					}
 				}
 			}
 
 			if ( $qv['monthnum'] ) {
 				if ( ! $this->is_date ) {
-					$this->is_month = true;
-					$this->is_date = true;
+					if ( 12 < $qv['monthnum'] ) {
+						$qv['error'] = '404';
+					} else {
+						$this->is_month = true;
+						$this->is_date = true;
+					}
 				}
 			}
 
@@ -1753,8 +1774,16 @@ class WP_Query {
 			$q['cat'] = implode(',', $req_cats);
 		}
 
-		if ( !empty($q['category__in']) ) {
-			$q['category__in'] = array_map('absint', array_unique( (array) $q['category__in'] ) );
+		if ( ! empty( $q['category__and'] ) && 1 === count( (array) $q['category__and'] ) ) {
+			$q['category__and'] = (array) $q['category__and'];
+			if ( ! isset( $q['category__in'] ) )
+				$q['category__in'] = array();
+			$q['category__in'][] = absint( reset( $q['category__and'] ) );
+			unset( $q['category__and'] );
+		}
+
+		if ( ! empty( $q['category__in'] ) ) {
+			$q['category__in'] = array_map( 'absint', array_unique( (array) $q['category__in'] ) );
 			$tax_query[] = array(
 				'taxonomy' => 'category',
 				'terms' => $q['category__in'],
@@ -1763,8 +1792,8 @@ class WP_Query {
 			);
 		}
 
-		if ( !empty($q['category__not_in']) ) {
-			$q['category__not_in'] = array_map('absint', array_unique( (array) $q['category__not_in'] ) );
+		if ( ! empty($q['category__not_in']) ) {
+			$q['category__not_in'] = array_map( 'absint', array_unique( (array) $q['category__not_in'] ) );
 			$tax_query[] = array(
 				'taxonomy' => 'category',
 				'terms' => $q['category__not_in'],
@@ -1773,8 +1802,8 @@ class WP_Query {
 			);
 		}
 
-		if ( !empty($q['category__and']) ) {
-			$q['category__and'] = array_map('absint', array_unique( (array) $q['category__and'] ) );
+		if ( ! empty($q['category__and']) ) {
+			$q['category__and'] = array_map( 'absint', array_unique( (array) $q['category__and'] ) );
 			$tax_query[] = array(
 				'taxonomy' => 'category',
 				'terms' => $q['category__and'],
@@ -1858,6 +1887,8 @@ class WP_Query {
 		}
 
 		$this->tax_query = new WP_Tax_Query( $tax_query );
+
+		do_action( 'parse_tax_query', $this );
 	}
 
 	/**
@@ -1917,7 +1948,7 @@ class WP_Query {
 	 * @return array List of posts.
 	 */
 	function get_posts() {
-		global $wpdb, $user_ID, $_wp_using_ext_object_cache;
+		global $wpdb, $user_ID;
 
 		$this->parse_query();
 
@@ -1967,7 +1998,7 @@ class WP_Query {
 			$q['suppress_filters'] = false;
 
 		if ( !isset($q['cache_results']) ) {
-			if ( $_wp_using_ext_object_cache )
+			if ( wp_using_ext_object_cache() )
 				$q['cache_results'] = false;
 			else
 				$q['cache_results'] = true;
@@ -2045,9 +2076,8 @@ class WP_Query {
 		if ( '' !== $q['menu_order'] )
 			$where .= " AND $wpdb->posts.menu_order = " . $q['menu_order'];
 
-		// If a month is specified in the querystring, load that month
+		// The "m" parameter is meant for months but accepts datetimes of varying specificity
 		if ( $q['m'] ) {
-			$q['m'] = '' . preg_replace('|[^0-9]|', '', $q['m']);
 			$where .= " AND YEAR($wpdb->posts.post_date)=" . substr($q['m'], 0, 4);
 			if ( strlen($q['m']) > 5 )
 				$where .= " AND MONTH($wpdb->posts.post_date)=" . substr($q['m'], 4, 2);
@@ -2061,23 +2091,42 @@ class WP_Query {
 				$where .= " AND SECOND($wpdb->posts.post_date)=" . substr($q['m'], 12, 2);
 		}
 
+		// Handle the other individual date parameters
+		$date_parameters = array();
+
 		if ( '' !== $q['hour'] )
-			$where .= " AND HOUR($wpdb->posts.post_date)='" . $q['hour'] . "'";
+			$date_parameters['hour'] = $q['hour'];
 
 		if ( '' !== $q['minute'] )
-			$where .= " AND MINUTE($wpdb->posts.post_date)='" . $q['minute'] . "'";
+			$date_parameters['minute'] = $q['minute'];
 
 		if ( '' !== $q['second'] )
-			$where .= " AND SECOND($wpdb->posts.post_date)='" . $q['second'] . "'";
+			$date_parameters['second'] = $q['second'];
 
 		if ( $q['year'] )
-			$where .= " AND YEAR($wpdb->posts.post_date)='" . $q['year'] . "'";
+			$date_parameters['year'] = $q['year'];
 
 		if ( $q['monthnum'] )
-			$where .= " AND MONTH($wpdb->posts.post_date)='" . $q['monthnum'] . "'";
+			$date_parameters['monthnum'] = $q['monthnum'];
+
+		if ( $q['w'] )
+			$date_parameters['week'] = $q['w'];
 
 		if ( $q['day'] )
-			$where .= " AND DAYOFMONTH($wpdb->posts.post_date)='" . $q['day'] . "'";
+			$date_parameters['day'] = $q['day'];
+
+		if ( $date_parameters ) {
+			$date_query = new WP_Date_Query( array( $date_parameters ) );
+			$where .= $date_query->get_sql();
+		}
+		unset( $date_parameters, $date_query );
+
+		// Handle complex date queries
+		if ( ! empty( $q['date_query'] ) ) {
+			$this->date_query = new WP_Date_Query( $q['date_query'] );
+			$where .= $this->date_query->get_sql();
+		}
+
 
 		// If we've got a post_type AND it's not "any" post_type.
 		if ( !empty($q['post_type']) && 'any' != $q['post_type'] ) {
@@ -2147,8 +2196,6 @@ class WP_Query {
 			$where .= " AND $wpdb->posts.post_name = '" . $q['attachment'] . "'";
 		}
 
-		if ( $q['w'] )
-			$where .= ' AND ' . _wp_mysql_week( "`$wpdb->posts`.`post_date`" ) . " = '" . $q['w'] . "'";
 
 		if ( intval($q['comments_popup']) )
 			$q['p'] = absint($q['comments_popup']);
@@ -2300,26 +2347,22 @@ class WP_Query {
 
 		// Author/user stuff
 
-		if ( empty($q['author']) || ($q['author'] == '0') ) {
-			$whichauthor = '';
-		} else {
-			$q['author'] = (string)urldecode($q['author']);
-			$q['author'] = addslashes_gpc($q['author']);
-			if ( strpos($q['author'], '-') !== false ) {
-				$eq = '!=';
-				$andor = 'AND';
-				$q['author'] = explode('-', $q['author']);
-				$q['author'] = (string)absint($q['author'][1]);
-			} else {
-				$eq = '=';
-				$andor = 'OR';
+		if ( ! empty( $q['author'] ) && $q['author'] != '0' ) {
+			$q['author'] = addslashes_gpc( '' . urldecode( $q['author'] ) );
+			$authors = array_unique( array_map( 'intval', preg_split( '/[,\s]+/', $q['author'] ) ) );
+			foreach ( $authors as $author ) {
+				$key = $author > 0 ? 'author__in' : 'author__not_in';
+				$q[$key][] = abs( $author );
 			}
-			$author_array = preg_split('/[,\s]+/', $q['author']);
-			$_author_array = array();
-			foreach ( $author_array as $key => $_author )
-				$_author_array[] = "$wpdb->posts.post_author " . $eq . ' ' . absint($_author);
-			$whichauthor .= ' AND (' . implode(" $andor ", $_author_array) . ')';
-			unset($author_array, $_author_array);
+			$q['author'] = implode( ',', $authors );
+		}
+
+		if ( ! empty( $q['author__not_in'] ) ) {
+			$author__not_in = implode( ',', array_map( 'absint', array_unique( (array) $q['author__not_in'] ) ) );
+			$where .= " AND {$wpdb->posts}.post_author NOT IN ($author__not_in) ";
+		} elseif ( ! empty( $q['author__in'] ) ) {
+			$author__in = implode( ',', array_map( 'absint', array_unique( (array) $q['author__in'] ) ) );
+			$where .= " AND {$wpdb->posts}.post_author IN ($author__in) ";
 		}
 
 		// Author stuff for nice URLs
@@ -2388,7 +2431,12 @@ class WP_Query {
 						break;
 					case $q['meta_key']:
 					case 'meta_value':
-						$orderby = "$wpdb->postmeta.meta_value";
+						if ( isset( $q['meta_type'] ) ) {
+							$meta_type = $this->meta_query->get_cast_for_type( $q['meta_type'] );
+							$orderby = "CAST($wpdb->postmeta.meta_value AS {$meta_type})";
+						} else {
+							$orderby = "$wpdb->postmeta.meta_value";
+						}
 						break;
 					case 'meta_value_num':
 						$orderby = "$wpdb->postmeta.meta_value+0";
@@ -2422,7 +2470,9 @@ class WP_Query {
 
 		if ( 'any' == $post_type ) {
 			$in_search_post_types = get_post_types( array('exclude_from_search' => false) );
-			if ( ! empty( $in_search_post_types ) )
+			if ( empty( $in_search_post_types ) )
+				$where .= ' AND 1=0 ';
+			else
 				$where .= " AND $wpdb->posts.post_type IN ('" . join("', '", $in_search_post_types ) . "')";
 		} elseif ( !empty( $post_type ) && is_array( $post_type ) ) {
 			$where .= " AND $wpdb->posts.post_type IN ('" . join("', '", $post_type) . "')";
@@ -3026,7 +3076,10 @@ class WP_Query {
 					_make_cat_compat( $this->queried_object );
 			}
 		} elseif ( $this->is_post_type_archive ) {
-			$this->queried_object = get_post_type_object( $this->get('post_type') );
+			$post_type = $this->get( 'post_type' );
+			if ( is_array( $post_type ) )
+				$post_type = reset( $post_type );
+			$this->queried_object = get_post_type_object( $post_type );
 		} elseif ( $this->is_posts_page ) {
 			$page_for_posts = get_option('page_for_posts');
 			$this->queried_object = get_post( $page_for_posts );
@@ -3099,10 +3152,13 @@ class WP_Query {
 	 * @return bool
 	 */
 	function is_post_type_archive( $post_types = '' ) {
-		if ( empty( $post_types ) || !$this->is_post_type_archive )
+		if ( empty( $post_types ) || ! $this->is_post_type_archive )
 			return (bool) $this->is_post_type_archive;
 
-		$post_type_object = $this->get_queried_object();
+		$post_type = $this->get( 'post_type' );
+		if ( is_array( $post_type ) )
+			$post_type = reset( $post_type );
+		$post_type_object = get_post_type_object( $post_type );
 
 		return in_array( $post_type_object->name, (array) $post_types );
 	}
@@ -3190,21 +3246,25 @@ class WP_Query {
 	 *
 	 * @since 3.1.0
 	 *
-	 * @param mixed $slug Optional. Tag slug or array of slugs.
+	 * @param mixed $tag Optional. Tag ID, name, slug, or array of Tag IDs, names, and slugs.
 	 * @return bool
 	 */
-	function is_tag( $slug = '' ) {
-		if ( !$this->is_tag )
+	function is_tag( $tag = '' ) {
+		if ( ! $this->is_tag )
 			return false;
 
-		if ( empty( $slug ) )
+		if ( empty( $tag ) )
 			return true;
 
 		$tag_obj = $this->get_queried_object();
 
-		$slug = (array) $slug;
+		$tag = (array) $tag;
 
-		if ( in_array( $tag_obj->slug, $slug ) )
+		if ( in_array( $tag_obj->term_id, $tag ) )
+			return true;
+		elseif ( in_array( $tag_obj->name, $tag ) )
+			return true;
+		elseif ( in_array( $tag_obj->slug, $tag ) )
 			return true;
 
 		return false;

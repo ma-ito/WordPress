@@ -94,30 +94,6 @@ function get_home_path() {
 }
 
 /**
- * Get the real file system path to a file to edit within the admin
- *
- * If the $file is index.php or .htaccess this function will assume it is relative
- * to the install root, otherwise it is assumed the file is relative to the wp-content
- * directory
- *
- * @since 1.5.0
- *
- * @uses get_home_path
- * @uses WP_CONTENT_DIR full filesystem path to the wp-content directory
- * @param string $file filesystem path relative to the WordPress install directory or to the wp-content directory
- * @return string full file system path to edit
- */
-function get_real_file_to_edit( $file ) {
-	if ('index.php' == $file || '.htaccess' == $file ) {
-		$real_file = get_home_path() . $file;
-	} else {
-		$real_file = WP_CONTENT_DIR . $file;
-	}
-
-	return $real_file;
-}
-
-/**
  * Returns a listing of all files in the specified folder and all subdirectories up to 100 levels deep.
  * The depth of the recursiveness can be controlled by the $levels param.
  *
@@ -509,7 +485,41 @@ function download_url( $url, $timeout = 300 ) {
 		return new WP_Error( 'http_404', trim( wp_remote_retrieve_response_message( $response ) ) );
 	}
 
+	$content_md5 = wp_remote_retrieve_header( $response, 'content-md5' );
+	if ( $content_md5 ) {
+		$md5_check = verify_file_md5( $tmpfname, $content_md5 );
+		if ( is_wp_error( $md5_check ) ) {
+			unlink( $tmpfname );
+			return $md5_check;
+		}
+	}
+
 	return $tmpfname;
+}
+
+/**
+ * Calculates and compares the MD5 of a file to it's expected value.
+ *
+ * @since 3.7.0
+ *
+ * @param string $filename The filename to check the MD5 of.
+ * @param string $expected_md5 The expected MD5 of the file, either a base64 encoded raw md5, or a hex-encoded md5
+ * @return bool|object WP_Error on failure, true on success, false when the MD5 format is unknown/unexpected
+ */
+function verify_file_md5( $filename, $expected_md5 ) {
+	if ( 32 == strlen( $expected_md5 ) )
+		$expected_raw_md5 = pack( 'H*', $expected_md5 );
+	elseif ( 24 == strlen( $expected_md5 ) )
+		$expected_raw_md5 = base64_decode( $expected_md5 );
+	else
+		return false; // unknown format
+
+	$file_md5 = md5_file( $filename, true );
+
+	if ( $file_md5 === $expected_raw_md5 )
+		return true;
+
+	return new WP_Error( 'md5_mismatch', sprintf( __( 'The checksum of the file (%1$s) does not match the expected checksum value (%2$s).' ), bin2hex( $file_md5 ), bin2hex( $expected_raw_md5 ) ) );
 }
 
 /**
@@ -666,11 +676,7 @@ function _unzip_file_ziparchive($file, $to, $needed_dirs = array() ) {
 function _unzip_file_pclzip($file, $to, $needed_dirs = array()) {
 	global $wp_filesystem;
 
-	// See #15789 - PclZip uses string functions on binary data, If it's overloaded with Multibyte safe functions the results are incorrect.
-	if ( ini_get('mbstring.func_overload') && function_exists('mb_internal_encoding') ) {
-		$previous_encoding = mb_internal_encoding();
-		mb_internal_encoding('ISO-8859-1');
-	}
+	mbstring_binary_safe_encoding();
 
 	require_once(ABSPATH . 'wp-admin/includes/class-pclzip.php');
 
@@ -678,8 +684,7 @@ function _unzip_file_pclzip($file, $to, $needed_dirs = array()) {
 
 	$archive_files = $archive->extract(PCLZIP_OPT_EXTRACT_AS_STRING);
 
-	if ( isset($previous_encoding) )
-		mb_internal_encoding($previous_encoding);
+	reset_mbstring_encoding();
 
 	// Is the archive valid?
 	if ( !is_array($archive_files) )
@@ -752,17 +757,9 @@ function copy_dir($from, $to, $skip_list = array() ) {
 	$from = trailingslashit($from);
 	$to = trailingslashit($to);
 
-	$skip_regex = '';
-	foreach ( (array)$skip_list as $key => $skip_file )
-		$skip_regex .= preg_quote($skip_file, '!') . '|';
-
-	if ( !empty($skip_regex) )
-		$skip_regex = '!(' . rtrim($skip_regex, '|') . ')$!i';
-
 	foreach ( (array) $dirlist as $filename => $fileinfo ) {
-		if ( !empty($skip_regex) )
-			if ( preg_match($skip_regex, $from . $filename) )
-				continue;
+		if ( in_array( $filename, $skip_list ) )
+			continue;
 
 		if ( 'f' == $fileinfo['type'] ) {
 			if ( ! $wp_filesystem->copy($from . $filename, $to . $filename, true, FS_CHMOD_FILE) ) {
@@ -776,7 +773,15 @@ function copy_dir($from, $to, $skip_list = array() ) {
 				if ( !$wp_filesystem->mkdir($to . $filename, FS_CHMOD_DIR) )
 					return new WP_Error('mkdir_failed', __('Could not create directory.'), $to . $filename);
 			}
-			$result = copy_dir($from . $filename, $to . $filename, $skip_list);
+
+			// generate the $sub_skip_list for the subdirectory as a sub-set of the existing $skip_list
+			$sub_skip_list = array();
+			foreach ( $skip_list as $skip_item ) {
+				if ( 0 === strpos( $skip_item, $filename . '/' ) )
+					$sub_skip_list[] = preg_replace( '!^' . preg_quote( $filename, '!' ) . '/!i', '', $skip_item );
+			}
+
+			$result = copy_dir($from . $filename, $to . $filename, $sub_skip_list);
 			if ( is_wp_error($result) )
 				return $result;
 		}
@@ -831,9 +836,9 @@ function WP_Filesystem( $args = false, $context = false ) {
 
 	// Set the permission constants if not already set.
 	if ( ! defined('FS_CHMOD_DIR') )
-		define('FS_CHMOD_DIR', 0755 );
+		define('FS_CHMOD_DIR', ( fileperms( ABSPATH ) & 0777 | 0750 ) );
 	if ( ! defined('FS_CHMOD_FILE') )
-		define('FS_CHMOD_FILE', 0644 );
+		define('FS_CHMOD_FILE', ( fileperms( ABSPATH . 'index.php' ) & 0777 | 0640 ) );
 
 	return true;
 }
@@ -1025,7 +1030,8 @@ jQuery(function($){
 
 <tr valign="top">
 <th scope="row"><label for="password"><?php echo $label_pass; ?></label></th>
-<td><input name="password" type="password" id="password" value="<?php if ( defined('FTP_PASS') ) echo '*****'; ?>"<?php disabled( defined('FTP_PASS') ); ?> size="40" /></td>
+<td><div><input name="password" type="password" id="password" value="<?php if ( defined('FTP_PASS') ) echo '*****'; ?>"<?php disabled( defined('FTP_PASS') ); ?> size="40" /></div>
+<div><em><?php if ( ! defined('FTP_PASS') ) _e( 'This password will not be stored on the server.' ); ?></em></div></td>
 </tr>
 
 <?php if ( isset($types['ssh']) ) : ?>

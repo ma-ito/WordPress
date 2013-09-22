@@ -94,6 +94,13 @@ if ( isset( $_GET['download'] ) ) {
 		$args['content'] = $_GET['content'];
 	}
 
+	/**
+	 * Filter the export args.
+	 *
+	 * @since 3.5.0
+	 *
+	 * @param array $args The arguments to send to the exporter.
+	 */
 	$args = apply_filters( 'export_args', $args );
 
 	export_wp( $args );
@@ -102,6 +109,16 @@ if ( isset( $_GET['download'] ) ) {
 
 require_once ('admin-header.php');
 
+/**
+ * Create the date options fields for exporting a given post type.
+ *
+ * @global wpdb      $wpdb      WordPress database object.
+ * @global WP_Locale $wp_locale Date and Time Locale object.
+ *
+ * @since 3.1.0
+ *
+ * @param string $post_type The post type. Default 'post'.
+ */
 function export_date_options( $post_type = 'post' ) {
 	global $wpdb, $wp_locale;
 
@@ -211,7 +228,14 @@ function export_date_options( $post_type = 'post' ) {
 <p><label><input type="radio" name="content" value="<?php echo esc_attr( $post_type->name ); ?>" /> <?php echo esc_html( $post_type->label ); ?></label></p>
 <?php endforeach; ?>
 
-<?php do_action( 'export_filters' ) ?>
+<?php
+/**
+ * Fires after the export filters form.
+ *
+ * @since 3.5.0
+ */
+do_action( 'export_filters' );
+?>
 
 <?php submit_button( __('Download Export File') ); ?>
 </form>

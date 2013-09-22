@@ -1,6 +1,8 @@
 <?php
 /**
- * WordPress Administration Generic POST Handler.
+ * WordPress Generic Request (POST/GET) Handler
+ *
+ * Intended for form submission handling in themes and plugins.
  *
  * @package WordPress
  * @subpackage Administration
@@ -13,6 +15,9 @@ if ( defined('ABSPATH') )
 	require_once(ABSPATH . 'wp-load.php');
 else
 	require_once('../wp-load.php');
+
+/** Allow for cross-domain requests (from the frontend). */
+send_origin_headers();
 
 require_once(ABSPATH . 'wp-admin/includes/admin.php');
 

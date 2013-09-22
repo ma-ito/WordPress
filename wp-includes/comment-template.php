@@ -22,17 +22,17 @@
  */
 function get_comment_author( $comment_ID = 0 ) {
 	$comment = get_comment( $comment_ID );
-	if ( empty($comment->comment_author) ) {
-		if (!empty($comment->user_id)){
-			$user=get_userdata($comment->user_id);
-			$author=$user->user_login;
-		} else {
+
+	if ( empty( $comment->comment_author ) ) {
+		if ( $comment->user_id && $user = get_userdata( $comment->user_id ) )
+			$author = $user->display_name;
+		else
 			$author = __('Anonymous');
-		}
 	} else {
 		$author = $comment->comment_author;
 	}
-	return apply_filters('get_comment_author', $author);
+
+	return apply_filters( 'get_comment_author', $author );
 }
 
 /**
@@ -136,16 +136,17 @@ function get_comment_author_email_link($linktext='', $before='', $after='') {
 }
 
 /**
- * Retrieve the html link to the url of the author of the current comment.
+ * Retrieve the HTML link to the URL of the author of the current comment.
+ *
+ * Both get_comment_author_url() and get_comment_author() rely on get_comment(),
+ * which falls back to the global comment variable if the $comment_ID argument is empty.
  *
  * @since 1.5.0
- * @uses apply_filters() Calls 'get_comment_author_link' hook on the complete link HTML or author
  *
- * @param int $comment_ID The ID of the comment for which to get the author's link. Optional.
- * @return string Comment Author name or HTML link for author's URL
+ * @param int $comment_ID Optional. The ID of the comment for which to get the author's link.
+ * @return string The comment author name or HTML link for author's URL.
  */
 function get_comment_author_link( $comment_ID = 0 ) {
-	/** @todo Only call these functions when they are needed. Include in if... else blocks */
 	$url    = get_comment_author_url( $comment_ID );
 	$author = get_comment_author( $comment_ID );
 
@@ -590,28 +591,52 @@ function comments_number( $zero = false, $one = false, $more = false, $deprecate
  * Retrieve the text of the current comment.
  *
  * @since 1.5.0
- * @uses $comment
  *
- * @param int $comment_ID The ID of the comment for which to get the text. Optional.
- * @return string The comment content
+ * @param int   $comment_ID Optional. The ID of the comment for which to get the text.
+ *                          Default 0.
+ * @param array $args       Optional. An array of arguments. @see Walker_Comment::comment()
+ *                          Default empty array.
+ * @return string The comment content.
  */
-function get_comment_text( $comment_ID = 0 ) {
+function get_comment_text( $comment_ID = 0, $args = array() ) {
 	$comment = get_comment( $comment_ID );
-	return apply_filters( 'get_comment_text', $comment->comment_content, $comment );
+
+	/**
+	 * Filter the text of a comment.
+	 *
+	 * @since 1.5.2
+	 *
+	 * @param string $comment->comment_content The text of the comment.
+	 * @param object $comment                  The comment object.
+	 * @param array  $args                     An array of arguments. @see Walker_Comment::comment()
+	 */
+	return apply_filters( 'get_comment_text', $comment->comment_content, $comment, $args );
 }
 
 /**
- * Displays the text of the current comment.
+ * Display the text of the current comment.
  *
  * @since 0.71
- * @uses apply_filters() Passes the comment content through the 'comment_text' hook before display
- * @uses get_comment_text() Gets the comment content
  *
- * @param int $comment_ID The ID of the comment for which to print the text. Optional.
+ * @param int   $comment_ID Optional. The ID of the comment for which to print the text.
+ *                          Default 0.
+ * @param array $args       Optional. An array of arguments. @see Walker_Comment::comment()
+ *                          Default empty array.
  */
-function comment_text( $comment_ID = 0 ) {
+function comment_text( $comment_ID = 0, $args = array() ) {
 	$comment = get_comment( $comment_ID );
-	echo apply_filters( 'comment_text', get_comment_text( $comment_ID ), $comment );
+
+	$comment_text = get_comment_text( $comment_ID , $args );
+	/**
+	 * Filter the text of a comment to be displayed.
+	 *
+	 * @since 1.2.1
+	 *
+	 * @param string $comment_text The text of the current comment.
+	 * @param object $comment      The comment object.
+	 * @param array  $args         An array of arguments. @see Walker_Comment::comment()
+	 */
+	echo apply_filters( 'comment_text', $comment_text, $comment, $args );
 }
 
 /**
@@ -1018,25 +1043,41 @@ function comments_popup_link( $zero = false, $one = false, $more = false, $css_c
 /**
  * Retrieve HTML content for reply to comment link.
  *
- * The default arguments that can be override are 'add_below', 'respond_id',
- * 'reply_text', 'login_text', and 'depth'. The 'login_text' argument will be
- * used, if the user must log in or register first before posting a comment. The
- * 'reply_text' will be used, if they can post a reply. The 'add_below' and
- * 'respond_id' arguments are for the JavaScript moveAddCommentForm() function
- * parameters.
- *
  * @since 2.7.0
  *
- * @param array $args Optional. Override default options.
+ * @param array $args {
+ *     Override default options.
+ *
+ *     @type string 'add_below'  The first part of the selector used to identify the comment to respond below. The resulting value is passed as the first parameter to addComment.moveForm(), concatenated as $add_below-$comment->comment_ID.
+ *                               Default is 'comment'.
+ *     @type string 'respond_id' The selector identifying the responding comment. Passed as the third parameter to addComment.moveForm(), and appended to the link URL as a hash value.
+ *                               Default is 'respond'.
+ *     @type string 'reply_text' The text of the Reply link.
+ *                               Default is 'Reply'.
+ *     @type string 'login_text' The text of the link to reply if logged out.
+ *                               Default is 'Log in to Reply'.
+ *     @type int    'depth'      The depth of the new comment. Must be greater than 0 and less than the value of the 'thread_comments_depth' option set in Settings > Discussion.
+ *                               Default is 0.
+ *     @type string 'before'     The text or HTML to add before the reply link.
+ *                               Default empty string.
+ *     @type string 'after'      The text or HTML to add after the reply link.
+ *                               Default empty string.
+ * }
  * @param int $comment Optional. Comment being replied to.
- * @param int $post Optional. Post that the comment is going to be displayed on.
+ * @param int $post    Optional. Post that the comment is going to be displayed on.
  * @return string|bool|null Link to show comment form, if successful. False, if comments are closed.
  */
 function get_comment_reply_link($args = array(), $comment = null, $post = null) {
-	global $user_ID;
 
-	$defaults = array('add_below' => 'comment', 'respond_id' => 'respond', 'reply_text' => __('Reply'),
-		'login_text' => __('Log in to Reply'), 'depth' => 0, 'before' => '', 'after' => '');
+	$defaults = array(
+		'add_below'  => 'comment',
+		'respond_id' => 'respond',
+		'reply_text' => __('Reply'),
+		'login_text' => __('Log in to Reply'),
+		'depth'      => 0,
+		'before'     => '',
+		'after'      => ''
+	);
 
 	$args = wp_parse_args($args, $defaults);
 
@@ -1055,11 +1096,24 @@ function get_comment_reply_link($args = array(), $comment = null, $post = null) 
 
 	$link = '';
 
-	if ( get_option('comment_registration') && !$user_ID )
+	if ( get_option('comment_registration') && ! is_user_logged_in() )
 		$link = '<a rel="nofollow" class="comment-reply-login" href="' . esc_url( wp_login_url( get_permalink() ) ) . '">' . $login_text . '</a>';
 	else
 		$link = "<a class='comment-reply-link' href='" . esc_url( add_query_arg( 'replytocom', $comment->comment_ID ) ) . "#" . $respond_id . "' onclick='return addComment.moveForm(\"$add_below-$comment->comment_ID\", \"$comment->comment_ID\", \"$respond_id\", \"$post->ID\")'>$reply_text</a>";
-	return apply_filters('comment_reply_link', $before . $link . $after, $args, $comment, $post);
+
+	/**
+	 * Filter the comment reply link.
+	 *
+	 * @since 2.7.0
+	 *
+	 * @param string  $before  Text or HTML displayed before the reply link.
+	 * @param string  $link    The HTML markup for the comment reply link.
+	 * @param string  $after   Text or HTML displayed after the reply link.
+	 * @param array   $args    An array of arguments overriding the defaults.
+	 * @param object  $comment The object of the comment being replied.
+	 * @param WP_Post $post    The WP_Post object.
+	 */
+	return apply_filters( 'comment_reply_link', $before . $link . $after, $args, $comment, $post );
 }
 
 /**
@@ -1068,7 +1122,7 @@ function get_comment_reply_link($args = array(), $comment = null, $post = null) 
  * @since 2.7.0
  * @see get_comment_reply_link() Echoes result
  *
- * @param array $args Optional. Override default options.
+ * @param array $args Optional. Override default options, @see get_comment_reply_link().
  * @param int $comment Optional. Comment being replied to.
  * @param int $post Optional. Post that the comment is going to be displayed on.
  * @return string|bool|null Link to show comment form, if successful. False, if comments are closed.
@@ -1087,6 +1141,8 @@ function comment_reply_link($args = array(), $comment = null, $post = null) {
  * 'respond_id' arguments are for the JavaScript moveAddCommentForm() function
  * parameters.
  *
+ * @todo See get_comment_reply_link() for a template of the args docblock.
+ *
  * @since 2.7.0
  *
  * @param array $args Optional. Override default options.
@@ -1094,10 +1150,14 @@ function comment_reply_link($args = array(), $comment = null, $post = null) {
  * @return string|bool|null Link to show comment form, if successful. False, if comments are closed.
  */
 function get_post_reply_link($args = array(), $post = null) {
-	global $user_ID;
-
-	$defaults = array('add_below' => 'post', 'respond_id' => 'respond', 'reply_text' => __('Leave a Comment'),
-		'login_text' => __('Log in to leave a Comment'), 'before' => '', 'after' => '');
+	$defaults = array(
+		'add_below'  => 'post',
+		'respond_id' => 'respond',
+		'reply_text' => __('Leave a Comment'),
+		'login_text' => __('Log in to leave a Comment'),
+		'before'     => '',
+		'after'      => '',
+	);
 
 	$args = wp_parse_args($args, $defaults);
 	extract($args, EXTR_SKIP);
@@ -1106,7 +1166,7 @@ function get_post_reply_link($args = array(), $post = null) {
 	if ( !comments_open($post->ID) )
 		return false;
 
-	if ( get_option('comment_registration') && !$user_ID ) {
+	if ( get_option('comment_registration') && ! is_user_logged_in() ) {
 		$link = '<a rel="nofollow" href="' . wp_login_url( get_permalink() ) . '">' . $login_text . '</a>';
 	} else {
 		$link = "<a rel='nofollow' class='comment-reply-link' href='" . get_permalink($post->ID) . "#$respond_id' onclick='return addComment.moveForm(\"$add_below-$post->ID\", \"0\", \"$respond_id\", \"$post->ID\")'>$reply_text</a>";
@@ -1116,10 +1176,10 @@ function get_post_reply_link($args = array(), $post = null) {
 
 /**
  * Displays the HTML content for reply to post link.
- * @since 2.7.0
- * @see get_post_reply_link()
  *
- * @param array $args Optional. Override default options.
+ * @since 2.7.0
+ *
+ * @param array $args Optional. Override default options, @see get_post_reply_link().
  * @param int|object $post Optional. Post that the comment is going to be displayed on.
  * @return string|bool|null Link to show comment form, if successful. False, if comments are closed.
  */
@@ -1419,7 +1479,7 @@ class Walker_Comment extends Walker {
 			?>
 		</div>
 
-		<?php comment_text() ?>
+		<?php comment_text( get_comment_id(), array_merge( $args, array( 'add_below' => $add_below, 'depth' => $depth, 'max_depth' => $args['max_depth'] ) ) ); ?>
 
 		<div class="reply">
 			<?php comment_reply_link( array_merge( $args, array( 'add_below' => $add_below, 'depth' => $depth, 'max_depth' => $args['max_depth'] ) ) ); ?>
@@ -1606,6 +1666,7 @@ function comment_form( $args = array(), $post_id = null ) {
 	$user = wp_get_current_user();
 	$user_identity = $user->exists() ? $user->display_name : '';
 
+	$args = wp_parse_args( $args );
 	if ( ! isset( $args['format'] ) )
 		$args['format'] = current_theme_supports( 'html5', 'comment-form' ) ? 'html5' : 'xhtml';
 

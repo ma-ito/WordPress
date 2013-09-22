@@ -25,6 +25,10 @@ function list_core_update( $update ) {
 	global $wp_local_package, $wpdb;
 	static $first_pass = true;
 
+	// Don't show auto-updates in the updates page
+	if ( isset( $update->response ) && 'autoupdate' == $update->response )
+		return;
+
 	$version_string = ('en_US' == $update->locale && 'en_US' == get_locale() ) ?
 			$update->current : sprintf("%s&ndash;<strong>%s</strong>", $update->current, $update->locale);
 	$current = false;
@@ -265,7 +269,7 @@ function list_theme_updates() {
 ?>
 <h3><?php _e( 'Themes' ); ?></h3>
 <p><?php _e( 'The following themes have new versions available. Check the ones you want to update and then click &#8220;Update Themes&#8221;.' ); ?></p>
-<p><?php printf( __('<strong>Please Note:</strong> Any customizations you have made to theme files will be lost. Please consider using <a href="%s">child themes</a> for modifications.'), _x('http://codex.wordpress.org/Child_Themes', 'Link used in suggestion to use child themes in GUU') ); ?></p>
+<p><?php printf( __( '<strong>Please Note:</strong> Any customizations you have made to theme files will be lost. Please consider using <a href="%s">child themes</a> for modifications.' ), __( 'http://codex.wordpress.org/Child_Themes' ) ); ?></p>
 <form method="post" action="<?php echo esc_url( $form_action ); ?>" name="upgrade-themes" class="upgrade">
 <?php wp_nonce_field('upgrade-core'); ?>
 <p><input id="upgrade-themes" class="button" type="submit" value="<?php esc_attr_e('Update Themes'); ?>" name="upgrade" /></p>
@@ -310,6 +314,8 @@ function list_theme_updates() {
 function do_core_upgrade( $reinstall = false ) {
 	global $wp_filesystem;
 
+	include_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+
 	if ( $reinstall )
 		$url = 'update-core.php?action=do-core-reinstall';
 	else
@@ -343,7 +349,10 @@ function do_core_upgrade( $reinstall = false ) {
 	if ( $reinstall )
 		$update->response = 'reinstall';
 
-	$result = wp_update_core($update, 'show_message');
+	add_filter( 'update_feedback', 'show_message' );
+
+	$upgrader = new Core_Upgrader();
+	$result = $upgrader->upgrade( $update );
 
 	if ( is_wp_error($result) ) {
 		show_message($result);

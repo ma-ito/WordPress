@@ -73,6 +73,9 @@ function wp_authenticate_username_password($user, $username, $password) {
 	if ( is_a($user, 'WP_User') ) { return $user; }
 
 	if ( empty($username) || empty($password) ) {
+		if ( is_wp_error( $user ) )
+			return $user;
+
 		$error = new WP_Error();
 
 		if ( empty($username) )
@@ -88,19 +91,6 @@ function wp_authenticate_username_password($user, $username, $password) {
 
 	if ( !$user )
 		return new WP_Error( 'invalid_username', sprintf( __( '<strong>ERROR</strong>: Invalid username. <a href="%s" title="Password Lost and Found">Lost your password</a>?' ), wp_lostpassword_url() ) );
-
-	if ( is_multisite() ) {
-		// Is user marked as spam?
-		if ( 1 == $user->spam )
-			return new WP_Error( 'spammer_account', __( '<strong>ERROR</strong>: Your account has been marked as a spammer.' ) );
-
-		// Is a user's blog marked as spam?
-		if ( !is_super_admin( $user->ID ) && isset( $user->primary_blog ) ) {
-			$details = get_blog_details( $user->primary_blog );
-			if ( is_object( $details ) && $details->spam == 1 )
-				return new WP_Error( 'blog_suspended', __( 'Site Suspended.' ) );
-		}
-	}
 
 	$user = apply_filters('wp_authenticate_user', $user, $password);
 	if ( is_wp_error($user) )
@@ -137,6 +127,22 @@ function wp_authenticate_cookie($user, $username, $password) {
 		// If the cookie is not set, be silent.
 	}
 
+	return $user;
+}
+
+/**
+ * For multisite blogs, check if the authenticated user has been marked as a
+ * spammer, or if the user's primary blog has been marked as spam.
+ *
+ * @since 3.7.0
+ */
+function wp_authenticate_spam_check( $user ) {
+	if ( $user && is_a( $user, 'WP_User' ) && is_multisite() ) {
+		$spammed = apply_filters( 'check_is_user_spammed', is_user_spammy(), $user );
+
+		if ( $spammed )
+			return new WP_Error( 'spammer_account', __( '<strong>ERROR</strong>: Your account has been marked as a spammer.' ) );
+	}
 	return $user;
 }
 
@@ -403,37 +409,44 @@ class WP_User_Query {
 			$this->query_fields = "$wpdb->users.ID";
 		}
 
-		if ( $qv['count_total'] )
+		if ( isset( $qv['count_total'] ) && $qv['count_total'] )
 			$this->query_fields = 'SQL_CALC_FOUND_ROWS ' . $this->query_fields;
 
 		$this->query_from = "FROM $wpdb->users";
 		$this->query_where = "WHERE 1=1";
 
 		// sorting
-		if ( in_array( $qv['orderby'], array('nicename', 'email', 'url', 'registered') ) ) {
-			$orderby = 'user_' . $qv['orderby'];
-		} elseif ( in_array( $qv['orderby'], array('user_nicename', 'user_email', 'user_url', 'user_registered') ) ) {
-			$orderby = $qv['orderby'];
-		} elseif ( 'name' == $qv['orderby'] || 'display_name' == $qv['orderby'] ) {
-			$orderby = 'display_name';
-		} elseif ( 'post_count' == $qv['orderby'] ) {
-			// todo: avoid the JOIN
-			$where = get_posts_by_author_sql('post');
-			$this->query_from .= " LEFT OUTER JOIN (
-				SELECT post_author, COUNT(*) as post_count
-				FROM $wpdb->posts
-				$where
-				GROUP BY post_author
-			) p ON ({$wpdb->users}.ID = p.post_author)
-			";
-			$orderby = 'post_count';
-		} elseif ( 'ID' == $qv['orderby'] || 'id' == $qv['orderby'] ) {
-			$orderby = 'ID';
-		} else {
-			$orderby = 'user_login';
+		if ( isset( $qv['orderby'] ) ) {
+			if ( in_array( $qv['orderby'], array('nicename', 'email', 'url', 'registered') ) ) {
+				$orderby = 'user_' . $qv['orderby'];
+			} elseif ( in_array( $qv['orderby'], array('user_nicename', 'user_email', 'user_url', 'user_registered') ) ) {
+				$orderby = $qv['orderby'];
+			} elseif ( 'name' == $qv['orderby'] || 'display_name' == $qv['orderby'] ) {
+				$orderby = 'display_name';
+			} elseif ( 'post_count' == $qv['orderby'] ) {
+				// todo: avoid the JOIN
+				$where = get_posts_by_author_sql('post');
+				$this->query_from .= " LEFT OUTER JOIN (
+					SELECT post_author, COUNT(*) as post_count
+					FROM $wpdb->posts
+					$where
+					GROUP BY post_author
+				) p ON ({$wpdb->users}.ID = p.post_author)
+				";
+				$orderby = 'post_count';
+			} elseif ( 'ID' == $qv['orderby'] || 'id' == $qv['orderby'] ) {
+				$orderby = 'ID';
+			} elseif ( 'meta_value' == $qv['orderby'] ) {
+				$orderby = "$wpdb->usermeta.meta_value";
+			} else {
+				$orderby = 'user_login';
+			}
 		}
 
-		$qv['order'] = strtoupper( $qv['order'] );
+		if ( empty( $orderby ) )
+			$orderby = 'user_login';
+
+		$qv['order'] = isset( $qv['order'] ) ? strtoupper( $qv['order'] ) : '';
 		if ( 'ASC' == $qv['order'] )
 			$order = 'ASC';
 		else
@@ -441,14 +454,17 @@ class WP_User_Query {
 		$this->query_orderby = "ORDER BY $orderby $order";
 
 		// limit
-		if ( $qv['number'] ) {
+		if ( isset( $qv['number'] ) && $qv['number'] ) {
 			if ( $qv['offset'] )
 				$this->query_limit = $wpdb->prepare("LIMIT %d, %d", $qv['offset'], $qv['number']);
 			else
 				$this->query_limit = $wpdb->prepare("LIMIT %d", $qv['number']);
 		}
 
-		$search = trim( $qv['search'] );
+		$search = '';
+		if ( isset( $qv['search'] ) )
+			$search = trim( $qv['search'] );
+
 		if ( $search ) {
 			$leading_wild = ( ltrim($search, '*') != $search );
 			$trailing_wild = ( rtrim($search, '*') != $search );
@@ -482,16 +498,20 @@ class WP_User_Query {
 			$this->query_where .= $this->get_search_sql( $search, $search_columns, $wild );
 		}
 
-		$blog_id = absint( $qv['blog_id'] );
+		$blog_id = 0;
+		if ( isset( $qv['blog_id'] ) )
+			$blog_id = absint( $qv['blog_id'] );
 
-		if ( 'authors' == $qv['who'] && $blog_id ) {
+		if ( isset( $qv['who'] ) && 'authors' == $qv['who'] && $blog_id ) {
 			$qv['meta_key'] = $wpdb->get_blog_prefix( $blog_id ) . 'user_level';
 			$qv['meta_value'] = 0;
 			$qv['meta_compare'] = '!=';
 			$qv['blog_id'] = $blog_id = 0; // Prevent extra meta query
 		}
 
-		$role = trim( $qv['role'] );
+		$role = '';
+		if ( isset( $qv['role'] ) )
+			$role = trim( $qv['role'] );
 
 		if ( $blog_id && ( $role || is_multisite() ) ) {
 			$cap_meta_query = array();
@@ -517,10 +537,10 @@ class WP_User_Query {
 				$this->query_fields = 'DISTINCT ' . $this->query_fields;
 		}
 
-		if ( !empty( $qv['include'] ) ) {
+		if ( ! empty( $qv['include'] ) ) {
 			$ids = implode( ',', wp_parse_id_list( $qv['include'] ) );
 			$this->query_where .= " AND $wpdb->users.ID IN ($ids)";
-		} elseif ( !empty($qv['exclude']) ) {
+		} elseif ( ! empty( $qv['exclude'] ) ) {
 			$ids = implode( ',', wp_parse_id_list( $qv['exclude'] ) );
 			$this->query_where .= " AND $wpdb->users.ID NOT IN ($ids)";
 		}
@@ -545,7 +565,7 @@ class WP_User_Query {
 			$this->results = $wpdb->get_col("SELECT $this->query_fields $this->query_from $this->query_where $this->query_orderby $this->query_limit");
 		}
 
-		if ( $qv['count_total'] )
+		if ( isset( $qv['count_total'] ) && $qv['count_total'] )
 			$this->total_users = $wpdb->get_var( apply_filters( 'found_users_query', 'SELECT FOUND_ROWS()' ) );
 
 		if ( !$this->results )
@@ -1543,4 +1563,101 @@ function _wp_get_user_contactmethods( $user = null ) {
 		);
 	}
 	return apply_filters( 'user_contactmethods', $user_contactmethods, $user );
+}
+
+/**
+ * Retrieves a user row based on password reset key and login
+ *
+ * @uses $wpdb WordPress Database object
+ *
+ * @param string $key Hash to validate sending user's password
+ * @param string $login The user login
+ * @return object|WP_Error User's database row on success, error object for invalid keys
+ */
+function check_password_reset_key( $key, $login ) {
+	global $wpdb;
+
+	$key = preg_replace( '/[^a-z0-9]/i', '', $key );
+
+	if ( empty( $key ) || ! is_string( $key ) )
+		return new WP_Error( 'invalid_key', __( 'Invalid key' ) );
+
+	if ( empty( $login ) || ! is_string( $login ) )
+		return new WP_Error( 'invalid_key', __( 'Invalid key' ) );
+
+	$user = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $wpdb->users WHERE user_activation_key = %s AND user_login = %s", $key, $login ) );
+
+	if ( empty( $user ) )
+		return new WP_Error( 'invalid_key', __( 'Invalid key' ) );
+
+	return $user;
+}
+
+/**
+ * Handles resetting the user's password.
+ *
+ * @param object $user The user
+ * @param string $new_pass New password for the user in plaintext
+ */
+function reset_password( $user, $new_pass ) {
+	do_action( 'password_reset', $user, $new_pass );
+
+	wp_set_password( $new_pass, $user->ID );
+	update_user_option( $user->ID, 'default_password_nag', false, true );
+
+	wp_password_change_notification( $user );
+}
+
+/**
+ * Handles registering a new user.
+ *
+ * @param string $user_login User's username for logging in
+ * @param string $user_email User's email address to send password and add
+ * @return int|WP_Error Either user's ID or error on failure.
+ */
+function register_new_user( $user_login, $user_email ) {
+	$errors = new WP_Error();
+
+	$sanitized_user_login = sanitize_user( $user_login );
+	$user_email = apply_filters( 'user_registration_email', $user_email );
+
+	// Check the username
+	if ( $sanitized_user_login == '' ) {
+		$errors->add( 'empty_username', __( '<strong>ERROR</strong>: Please enter a username.' ) );
+	} elseif ( ! validate_username( $user_login ) ) {
+		$errors->add( 'invalid_username', __( '<strong>ERROR</strong>: This username is invalid because it uses illegal characters. Please enter a valid username.' ) );
+		$sanitized_user_login = '';
+	} elseif ( username_exists( $sanitized_user_login ) ) {
+		$errors->add( 'username_exists', __( '<strong>ERROR</strong>: This username is already registered. Please choose another one.' ) );
+	}
+
+	// Check the e-mail address
+	if ( $user_email == '' ) {
+		$errors->add( 'empty_email', __( '<strong>ERROR</strong>: Please type your e-mail address.' ) );
+	} elseif ( ! is_email( $user_email ) ) {
+		$errors->add( 'invalid_email', __( '<strong>ERROR</strong>: The email address isn&#8217;t correct.' ) );
+		$user_email = '';
+	} elseif ( email_exists( $user_email ) ) {
+		$errors->add( 'email_exists', __( '<strong>ERROR</strong>: This email is already registered, please choose another one.' ) );
+	}
+
+	do_action( 'register_post', $sanitized_user_login, $user_email, $errors );
+
+	$errors = apply_filters( 'registration_errors', $errors, $sanitized_user_login, $user_email );
+
+	if ( $errors->get_error_code() )
+		return $errors;
+
+	$user_pass = wp_generate_password( 12, false );
+	$user_id = wp_create_user( $sanitized_user_login, $user_pass, $user_email );
+	if ( ! $user_id || is_wp_error( $user_id ) ) {
+		$errors->add( 'registerfail', sprintf( __( '<strong>ERROR</strong>: Couldn&#8217;t register you&hellip; please contact the <a href="mailto:%s">webmaster</a> !' ), get_option( 'admin_email' ) ) );
+		return $errors;
+	}
+
+	update_user_option( $user_id, 'default_password_nag', true, true ); //Set up the Password change nag.
+
+	wp_new_user_notification( $user_id, $user_pass );
+
+	return $user_id;
 }

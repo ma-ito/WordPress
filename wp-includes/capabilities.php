@@ -936,7 +936,7 @@ class WP_User {
 		}
 
 		// Must have ALL requested caps
-		$capabilities = apply_filters( 'user_has_cap', $this->allcaps, $caps, $args );
+		$capabilities = apply_filters( 'user_has_cap', $this->allcaps, $caps, $args, $this );
 		$capabilities['exist'] = true; // Everyone is allowed to exist
 		foreach ( (array) $caps as $cap ) {
 			if ( empty( $capabilities[ $cap ] ) )
@@ -1039,10 +1039,8 @@ function map_meta_cap( $cap, $user_id ) {
 		if ( ! $post_author_id )
 			$post_author_id = $user_id;
 
-		$post_author_data = $post_author_id == get_current_user_id() ? wp_get_current_user() : get_userdata( $post_author_id );
-
 		// If the user is the author...
-		if ( is_object( $post_author_data ) && $user_id == $post_author_data->ID ) {
+		if ( $user_id == $post_author_id ) {
 			// If the post is published...
 			if ( 'publish' == $post->post_status ) {
 				$caps[] = $post_type->cap->delete_published_posts;
@@ -1068,6 +1066,8 @@ function map_meta_cap( $cap, $user_id ) {
 	case 'edit_post':
 	case 'edit_page':
 		$post = get_post( $args[0] );
+		if ( empty( $post ) )
+			break;
 
 		if ( 'revision' == $post->post_type ) {
 			$post = get_post( $post->post_parent );
@@ -1089,10 +1089,8 @@ function map_meta_cap( $cap, $user_id ) {
 		if ( ! $post_author_id )
 			$post_author_id = $user_id;
 
-		$post_author_data = $post_author_id == get_current_user_id() ? wp_get_current_user() : get_userdata( $post_author_id );
-
 		// If the user is the author...
-		if ( is_object( $post_author_data ) && $user_id == $post_author_data->ID ) {
+		if ( $user_id == $post_author_id ) {
 			// If the post is published...
 			if ( 'publish' == $post->post_status ) {
 				$caps[] = $post_type->cap->edit_published_posts;
@@ -1143,9 +1141,7 @@ function map_meta_cap( $cap, $user_id ) {
 		if ( ! $post_author_id )
 			$post_author_id = $user_id;
 
-		$post_author_data = $post_author_id == get_current_user_id() ? wp_get_current_user() : get_userdata( $post_author_id );
-
-		if ( is_object( $post_author_data ) && $user_id == $post_author_data->ID )
+		if ( $user_id == $post_author_id )
 			$caps[] = $post_type->cap->read;
 		elseif ( $status_obj->private )
 			$caps[] = $post_type->cap->read_private_posts;
@@ -1176,6 +1172,8 @@ function map_meta_cap( $cap, $user_id ) {
 		break;
 	case 'edit_comment':
 		$comment = get_comment( $args[0] );
+		if ( empty( $comment ) )
+			break;
 		$post = get_post( $comment->comment_post_ID );
 		$caps = map_meta_cap( 'edit_post', $user_id, $post->ID );
 		break;

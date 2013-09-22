@@ -37,8 +37,6 @@ class Walker_Nav_Menu_Edit extends Walker_Nav_Menu {
 		global $_wp_nav_menu_max_depth;
 		$_wp_nav_menu_max_depth = $depth > $_wp_nav_menu_max_depth ? $depth : $_wp_nav_menu_max_depth;
 
-		$indent = ( $depth ) ? str_repeat( "\t", $depth ) : '';
-
 		ob_start();
 		$item_id = esc_attr( $item->ID );
 		$removed_args = array(
@@ -57,7 +55,7 @@ class Walker_Nav_Menu_Edit extends Walker_Nav_Menu {
 				$original_title = false;
 		} elseif ( 'post_type' == $item->type ) {
 			$original_object = get_post( $item->object_id );
-			$original_title = $original_object->post_title;
+			$original_title = get_the_title( $original_object->ID );
 		}
 
 		$classes = array(
@@ -262,14 +260,17 @@ class Walker_Nav_Menu_Checklist extends Walker_Nav_Menu {
 		$output .= '<label class="menu-item-title">';
 		$output .= '<input type="checkbox" class="menu-item-checkbox';
 		if ( property_exists( $item, 'front_or_home' ) && $item->front_or_home ) {
-			$title = sprintf( _x( 'Home: %s', 'nav menu front page title' ), $item->post_title );
+			$title = sprintf( _x( 'Home: %s', 'nav menu front page title' ), get_the_title( $item->ID ) );
 			$output .= ' add-to-top';
 		} elseif ( property_exists( $item, 'label' ) ) {
 			$title = $item->label;
 		}
 		$output .= '" name="menu-item[' . $possible_object_id . '][menu-item-object-id]" value="'. esc_attr( $item->object_id ) .'" /> ';
-		$output .= isset( $title ) ? esc_html( $title ) : esc_html( $item->title );
-		$output .= '</label>';
+		if ( isset( $item->post_type ) )
+			$output .= empty( $item->label ) ? esc_html( get_the_title( $item->ID ) ) : esc_html( $item->label );
+		else
+			$output .= isset( $title ) ? esc_html( $title ) : esc_html( $item->title );
+ 		$output .= '</label>';
 
 		// Menu item hidden fields
 		$output .= '<input type="hidden" class="menu-item-db-id" name="menu-item[' . $possible_object_id . '][menu-item-db-id]" value="' . $possible_db_id . '" />';
@@ -484,51 +485,6 @@ function wp_nav_menu_taxonomy_meta_boxes() {
 			add_meta_box( "add-{$id}", $tax->labels->name, 'wp_nav_menu_item_taxonomy_meta_box', 'nav-menus', 'side', 'default', $tax );
 		}
 	}
-}
-
-/**
- * Displays a metabox for the nav menu theme locations.
- *
- * @since 3.0.0
- */
-function wp_nav_menu_locations_meta_box() {
-	global $nav_menu_selected_id;
-
-	if ( ! current_theme_supports( 'menus' ) ) {
-		// We must only support widgets. Leave a message and bail.
-		echo '<p class="howto">' . __('The current theme does not natively support menus, but you can use the &#8220;Custom Menu&#8221; widget to add any menus you create here to the theme&#8217;s sidebar.') . '</p>';
-		return;
-	}
-
-	$locations = get_registered_nav_menus();
-	$menus = wp_get_nav_menus();
-	$menu_locations = get_nav_menu_locations();
-	$num_locations = count( array_keys($locations) );
-
-	echo '<p class="howto">' . _n( 'Select a menu to use within your theme.', 'Select the menus you will use in your theme.', $num_locations ) . '</p>';
-
-	foreach ( $locations as $location => $description ) {
-		?>
-		<p>
-			<label class="howto" for="locations-<?php echo $location; ?>">
-				<span><?php echo $description; ?></span>
-				<select name="menu-locations[<?php echo $location; ?>]" id="locations-<?php echo $location; ?>">
-					<option value="0"></option>
-					<?php foreach ( $menus as $menu ) : ?>
-					<option<?php selected( isset( $menu_locations[ $location ] ) && $menu_locations[ $location ] == $menu->term_id ); ?>
-						value="<?php echo $menu->term_id; ?>"><?php echo wp_html_excerpt( $menu->name, 40, '&hellip;' ); ?></option>
-					<?php endforeach; ?>
-				</select>
-			</label>
-		</p>
-	<?php
-	}
-	?>
-	<p class="button-controls">
-		<?php submit_button( __( 'Save' ), 'primary right', 'nav-menu-locations', false, wp_nav_menu_disabled_check( $nav_menu_selected_id ) ); ?>
-		<span class="spinner"></span>
-	</p>
-	<?php
 }
 
 /**

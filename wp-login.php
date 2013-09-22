@@ -269,102 +269,6 @@ function retrieve_password() {
 	return true;
 }
 
-/**
- * Retrieves a user row based on password reset key and login
- *
- * @uses $wpdb WordPress Database object
- *
- * @param string $key Hash to validate sending user's password
- * @param string $login The user login
- * @return object|WP_Error User's database row on success, error object for invalid keys
- */
-function check_password_reset_key($key, $login) {
-	global $wpdb;
-
-	$key = preg_replace('/[^a-z0-9]/i', '', $key);
-
-	if ( empty( $key ) || !is_string( $key ) )
-		return new WP_Error('invalid_key', __('Invalid key'));
-
-	if ( empty($login) || !is_string($login) )
-		return new WP_Error('invalid_key', __('Invalid key'));
-
-	$user = $wpdb->get_row($wpdb->prepare("SELECT * FROM $wpdb->users WHERE user_activation_key = %s AND user_login = %s", $key, $login));
-
-	if ( empty( $user ) )
-		return new WP_Error('invalid_key', __('Invalid key'));
-
-	return $user;
-}
-
-/**
- * Handles resetting the user's password.
- *
- * @param object $user The user
- * @param string $new_pass New password for the user in plaintext
- */
-function reset_password($user, $new_pass) {
-	do_action('password_reset', $user, $new_pass);
-
-	wp_set_password($new_pass, $user->ID);
-
-	wp_password_change_notification($user);
-}
-
-/**
- * Handles registering a new user.
- *
- * @param string $user_login User's username for logging in
- * @param string $user_email User's email address to send password and add
- * @return int|WP_Error Either user's ID or error on failure.
- */
-function register_new_user( $user_login, $user_email ) {
-	$errors = new WP_Error();
-
-	$sanitized_user_login = sanitize_user( $user_login );
-	$user_email = apply_filters( 'user_registration_email', $user_email );
-
-	// Check the username
-	if ( $sanitized_user_login == '' ) {
-		$errors->add( 'empty_username', __( '<strong>ERROR</strong>: Please enter a username.' ) );
-	} elseif ( ! validate_username( $user_login ) ) {
-		$errors->add( 'invalid_username', __( '<strong>ERROR</strong>: This username is invalid because it uses illegal characters. Please enter a valid username.' ) );
-		$sanitized_user_login = '';
-	} elseif ( username_exists( $sanitized_user_login ) ) {
-		$errors->add( 'username_exists', __( '<strong>ERROR</strong>: This username is already registered. Please choose another one.' ) );
-	}
-
-	// Check the e-mail address
-	if ( $user_email == '' ) {
-		$errors->add( 'empty_email', __( '<strong>ERROR</strong>: Please type your e-mail address.' ) );
-	} elseif ( ! is_email( $user_email ) ) {
-		$errors->add( 'invalid_email', __( '<strong>ERROR</strong>: The email address isn&#8217;t correct.' ) );
-		$user_email = '';
-	} elseif ( email_exists( $user_email ) ) {
-		$errors->add( 'email_exists', __( '<strong>ERROR</strong>: This email is already registered, please choose another one.' ) );
-	}
-
-	do_action( 'register_post', $sanitized_user_login, $user_email, $errors );
-
-	$errors = apply_filters( 'registration_errors', $errors, $sanitized_user_login, $user_email );
-
-	if ( $errors->get_error_code() )
-		return $errors;
-
-	$user_pass = wp_generate_password( 12, false);
-	$user_id = wp_create_user( $sanitized_user_login, $user_pass, $user_email );
-	if ( ! $user_id ) {
-		$errors->add( 'registerfail', sprintf( __( '<strong>ERROR</strong>: Couldn&#8217;t register you&hellip; please contact the <a href="mailto:%s">webmaster</a> !' ), get_option( 'admin_email' ) ) );
-		return $errors;
-	}
-
-	update_user_option( $user_id, 'default_password_nag', true, true ); //Set up the Password change nag.
-
-	wp_new_user_notification( $user_id, $user_pass );
-
-	return $user_id;
-}
-
 //
 // Main
 //
@@ -410,8 +314,17 @@ case 'postpass' :
 	require_once ABSPATH . 'wp-includes/class-phpass.php';
 	$hasher = new PasswordHash( 8, true );
 
-	// 10 days
-	setcookie( 'wp-postpass_' . COOKIEHASH, $hasher->HashPassword( wp_unslash( $_POST['post_password'] ) ), time() + 10 * DAY_IN_SECONDS, COOKIEPATH );
+	/**
+	 * Filter the life of the post password cookie.
+	 *
+	 * By default, the cookie expires 10 days from now.
+	 * To turn this into a session cookie, return 0.
+	 *
+	 * @since 3.7.0
+	 * @param int $expires The expiry time, as passed to setcookie().
+	 */
+	$expire = apply_filters( 'post_password_expires', time() + 10 * DAY_IN_SECONDS );
+	setcookie( 'wp-postpass_' . COOKIEHASH, $hasher->HashPassword( wp_unslash( $_POST['post_password'] ) ), $expire, COOKIEPATH );
 
 	wp_safe_redirect( wp_get_referer() );
 	exit();
@@ -619,7 +532,11 @@ default:
 	if ( !$secure_cookie && is_ssl() && force_ssl_login() && !force_ssl_admin() && ( 0 !== strpos($redirect_to, 'https') ) && ( 0 === strpos($redirect_to, 'http') ) )
 		$secure_cookie = false;
 
-	$user = wp_signon('', $secure_cookie);
+	// If cookies are disabled we can't log in even with a valid user+pass
+	if ( isset($_POST['testcookie']) && empty($_COOKIE[TEST_COOKIE]) )
+		$user = new WP_Error('test_cookie', __("<strong>ERROR</strong>: Cookies are blocked or not supported by your browser. You must <a href='http://www.google.com/cookies.html'>enable cookies</a> to use WordPress."));
+	else
+		$user = wp_signon('', $secure_cookie);
 
 	$redirect_to = apply_filters('login_redirect', $redirect_to, isset( $_REQUEST['redirect_to'] ) ? $_REQUEST['redirect_to'] : '', $user);
 
@@ -654,10 +571,6 @@ default:
 	// Clear errors if loggedout is set.
 	if ( !empty($_GET['loggedout']) || $reauth )
 		$errors = new WP_Error();
-
-	// If cookies are disabled we can't log in even with a valid user+pass
-	if ( isset($_POST['testcookie']) && empty($_COOKIE[TEST_COOKIE]) )
-		$errors->add('test_cookie', __("<strong>ERROR</strong>: Cookies are blocked or not supported by your browser. You must <a href='http://www.google.com/cookies.html'>enable cookies</a> to use WordPress."));
 
 	if ( $interim_login ) {
 		if ( ! $errors->get_error_code() )

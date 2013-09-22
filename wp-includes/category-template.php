@@ -225,16 +225,14 @@ function get_the_category_list( $separator = '', $parents='', $post_id = false )
  * As of 2.7, the function can be used anywhere if it is provided a post ID or post object.
  *
  * @since 1.2.0
+ * @uses has_category()
  *
  * @param int|string|array $category Category ID, name or slug, or array of said.
  * @param int|object $post Optional. Post to check instead of the current post. (since 2.7.0)
  * @return bool True if the current post is in any of the given categories.
  */
 function in_category( $category, $post = null ) {
-	if ( empty( $category ) )
-		return false;
-
-	return has_term( $category, 'category', $post );
+	return has_category( $category, $post );
 }
 
 /**
@@ -467,7 +465,7 @@ function wp_list_categories( $args = '' ) {
 
 		if ( empty( $r['current_category'] ) && ( is_category() || is_tax() || is_tag() ) ) {
 			$current_term_object = get_queried_object();
-			if ( $r['taxonomy'] == $current_term_object->taxonomy )
+			if ( $current_term_object && $r['taxonomy'] === $current_term_object->taxonomy )
 				$r['current_category'] = get_queried_object_id();
 		}
 
@@ -1039,10 +1037,12 @@ function tag_description( $tag = 0 ) {
  * @return string Term description, available.
  */
 function term_description( $term = 0, $taxonomy = 'post_tag' ) {
-	if ( !$term && ( is_tax() || is_tag() || is_category() ) ) {
+	if ( ! $term && ( is_tax() || is_tag() || is_category() ) ) {
 		$term = get_queried_object();
-		$taxonomy = $term->taxonomy;
-		$term = $term->term_id;
+		if ( $term ) {
+			$taxonomy = $term->taxonomy;
+			$term = $term->term_id;
+		}
 	}
 	$description = get_term_field( 'description', $term, $taxonomy );
 	return is_wp_error( $description ) ? '' : $description;

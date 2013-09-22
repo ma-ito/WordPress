@@ -458,7 +458,8 @@ function get_body_class( $class = '' ) {
 	} elseif ( is_archive() ) {
 		if ( is_post_type_archive() ) {
 			$classes[] = 'post-type-archive';
-			$classes[] = 'post-type-archive-' . sanitize_html_class( get_query_var( 'post_type' ) );
+			foreach ( (array) get_query_var( 'post_type' ) as $post_type )
+				$classes[] = 'post-type-archive-' . sanitize_html_class( $post_type );
 		} else if ( is_author() ) {
 			$author = $wp_query->get_queried_object();
 			$classes[] = 'author';
@@ -650,7 +651,7 @@ function wp_link_pages( $args = '' ) {
 	$r = apply_filters( 'wp_link_pages_args', $r );
 	extract( $r, EXTR_SKIP );
 
-	global $page, $numpages, $multipage, $more, $pagenow;
+	global $page, $numpages, $multipage, $more;
 
 	$output = '';
 	if ( $multipage ) {
@@ -875,7 +876,7 @@ function wp_list_pages($args = '') {
  *
  * <ul>
  * <li><strong>sort_column</strong> - How to sort the list of pages. Defaults
- * to page title. Use column for posts table.</li>
+ * to 'menu_order, post_title'. Use column for posts table.</li>
  * <li><strong>menu_class</strong> - Class to use for the div ID which contains
  * the page list. Defaults to 'menu'.</li>
  * <li><strong>echo</strong> - Whether to echo list or return it. Defaults to
@@ -1233,12 +1234,12 @@ function prepend_attachment($content) {
 function get_the_password_form( $post = 0 ) {
 	$post = get_post( $post );
 	$label = 'pwbox-' . ( empty($post->ID) ? rand() : $post->ID );
-	$output = '<form action="' . esc_url( site_url( 'wp-login.php?action=postpass', 'login_post' ) ) . '" method="post">
-	<p>' . __("This post is password protected. To view it please enter your password below:") . '</p>
-	<p><label for="' . $label . '">' . __("Password:") . ' <input name="post_password" id="' . $label . '" type="password" size="20" /></label> <input type="submit" name="Submit" value="' . esc_attr__("Submit") . '" /></p>
-</form>
+	$output = '<form action="' . esc_url( site_url( 'wp-login.php?action=postpass', 'login_post' ) ) . '" class="post-password-form" method="post">
+	<p>' . __( 'This post is password protected. To view it please enter your password below:' ) . '</p>
+	<p><label for="' . $label . '">' . __( 'Password:' ) . ' <input name="post_password" id="' . $label . '" type="password" size="20" /></label> <input type="submit" name="Submit" value="' . esc_attr__( 'Submit' ) . '" /></p>
+	</form>
 	';
-	return apply_filters('the_password_form', $output);
+	return apply_filters( 'the_password_form', $output );
 }
 
 /**
@@ -1428,31 +1429,5 @@ function wp_list_post_revisions( $post_id = 0, $type = 'all' ) {
 
 	echo "<ul class='post-revisions hide-if-no-js'>\n";
 	echo $rows;
-
-	// if the post was previously restored from a revision
-	// show the restore event details
-	if ( $restored_from_meta = get_post_meta( $post->ID, '_post_restored_from', true ) ) {
-		$author = get_user_by( 'id', $restored_from_meta[ 'restored_by_user' ] );
-		/* translators: revision date format, see http://php.net/date */
-		$datef = _x( 'j F, Y @ G:i:s', 'revision date format');
-		$date = date_i18n( $datef, strtotime( $restored_from_meta[ 'restored_time' ] ) );
-		$time_diff = human_time_diff( $restored_from_meta[ 'restored_time' ] ) ;
-		?>
-		<hr />
-		<div id="revisions-meta-restored">
-			<?php
-			printf(
-				/* translators: restored revision details: 1: gravatar image, 2: author name, 3: time ago, 4: date */
-				__( 'Previously restored by %1$s %2$s, %3$s ago (%4$s)' ),
-				get_avatar( $author->ID, 24 ),
-				$author->display_name,
-				$time_diff,
-				$date
-			);
-			?>
-		</div>
-		<?php
-		echo "</ul>";
-	}
-
+	echo "</ul>";
 }

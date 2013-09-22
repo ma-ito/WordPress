@@ -160,7 +160,7 @@ $('.contextual-help-tabs').delegate('a', 'click focus', function(e) {
 });
 
 $(document).ready( function() {
-	var lastClicked = false, checks, first, last, checked, menu = $('#adminmenu'), mobileEvent,
+	var lastClicked = false, checks, first, last, checked, sliced, menu = $('#adminmenu'), mobileEvent,
 		pageInput = $('input.current-page'), currentPage = pageInput.val();
 
 	// when the menu is folded, make the fly-out submenu header clickable
@@ -185,15 +185,15 @@ $(document).ready( function() {
 			if ( body.hasClass('auto-fold') ) {
 				body.removeClass('auto-fold').removeClass('folded');
 				setUserSetting('unfold', 1);
-				deleteUserSetting('mfold');
+				setUserSetting('mfold', 'o');
 			} else {
 				body.addClass('auto-fold');
-				deleteUserSetting('unfold');
+				setUserSetting('unfold', 0);
 			}
 		} else {
 			if ( body.hasClass('folded') ) {
 				body.removeClass('folded');
-				deleteUserSetting('mfold');
+				setUserSetting('mfold', 'o');
 			} else {
 				body.addClass('folded');
 				setUserSetting('mfold', 'f');
@@ -286,7 +286,8 @@ $(document).ready( function() {
 			last = checks.index( this );
 			checked = $(this).prop('checked');
 			if ( 0 < first && 0 < last && first != last ) {
-				checks.slice( first, last ).prop( 'checked', function(){
+				sliced = ( last > first ) ? checks.slice( first, last ) : checks.slice( last, first );
+				sliced.prop( 'checked', function() {
 					if ( $(this).closest('tr').is(':visible') )
 						return checked;
 

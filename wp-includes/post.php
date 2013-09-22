@@ -167,8 +167,9 @@ add_action( 'init', 'create_initial_post_types', 0 ); // highest priority
 /**
  * Retrieve attached file path based on attachment ID.
  *
- * You can optionally send it through the 'get_attached_file' filter, but by
- * default it will just return the file path unfiltered.
+ * By default the path will go through the 'get_attached_file' filter, but
+ * passing a true to the $unfiltered argument of get_attached_file() will
+ * return the file path unfiltered.
  *
  * The function works by getting the single post meta name, named
  * '_wp_attached_file' and returning it. This is a convenience function to
@@ -310,8 +311,11 @@ function get_children($args = '', $output = OBJECT) {
 
 	$children = get_posts( $r );
 
-	if ( !$children )
+	if ( ! $children )
 		return $kids;
+
+	if ( ! empty( $r['fields'] ) )
+		return $children;
 
 	update_post_cache($children);
 
@@ -375,7 +379,6 @@ function get_extended($post) {
  * $post, must be given as a variable, since it is passed by reference.
  *
  * @since 1.5.1
- * @uses $wpdb
  * @link http://codex.wordpress.org/Function_Reference/get_post
  *
  * @param int|object $post Post ID or post object. Optional, default is the current post from the loop.
@@ -424,159 +427,179 @@ function get_post( $post = null, $output = OBJECT, $filter = 'raw' ) {
 final class WP_Post {
 
 	/**
+	 * Post ID.
 	 *
 	 * @var int
 	 */
 	public $ID;
 
 	/**
+	 * ID of post author.
 	 *
-	 * @var int
+	 * A numeric string, for compatibility reasons.
+	 *
+	 * @var string
 	 */
 	public $post_author = 0;
 
 	/**
+	 * The post's local publication time.
 	 *
 	 * @var string
 	 */
 	public $post_date = '0000-00-00 00:00:00';
 
 	/**
+	 * The post's GMT publication time.
 	 *
 	 * @var string
 	 */
 	public $post_date_gmt = '0000-00-00 00:00:00';
 
 	/**
+	 * The post's content.
 	 *
 	 * @var string
 	 */
 	public $post_content = '';
 
 	/**
+	 * The post's title.
 	 *
 	 * @var string
 	 */
 	public $post_title = '';
 
 	/**
+	 * The post's excerpt.
 	 *
 	 * @var string
 	 */
 	public $post_excerpt = '';
 
 	/**
+	 * The post's status.
 	 *
 	 * @var string
 	 */
 	public $post_status = 'publish';
 
 	/**
+	 * Whether comments are allowed.
 	 *
 	 * @var string
 	 */
 	public $comment_status = 'open';
 
 	/**
+	 * Whether pings are allowed.
 	 *
 	 * @var string
 	 */
 	public $ping_status = 'open';
 
 	/**
+	 * The post's password in plain text.
 	 *
 	 * @var string
 	 */
 	public $post_password = '';
 
 	/**
+	 * The post's slug.
 	 *
 	 * @var string
 	 */
 	public $post_name = '';
 
 	/**
+	 * URLs queued to be pinged.
 	 *
 	 * @var string
 	 */
 	public $to_ping = '';
 
 	/**
+	 * URLs that have been pinged.
 	 *
 	 * @var string
 	 */
 	public $pinged = '';
 
 	/**
+	 * The post's local modified time.
 	 *
 	 * @var string
 	 */
 	public $post_modified = '0000-00-00 00:00:00';
 
 	/**
+	 * The post's GMT modified time.
 	 *
 	 * @var string
 	 */
 	public $post_modified_gmt = '0000-00-00 00:00:00';
 
 	/**
+	 * A utility DB field for post content.
+	 *
 	 *
 	 * @var string
 	 */
 	public $post_content_filtered = '';
 
 	/**
+	 * ID of a post's parent post.
 	 *
 	 * @var int
 	 */
 	public $post_parent = 0;
 
 	/**
+	 * The unique identifier for a post, not necessarily a URL, used as the feed GUID.
 	 *
 	 * @var string
 	 */
 	public $guid = '';
 
 	/**
+	 * A field used for ordering posts.
 	 *
 	 * @var int
 	 */
 	public $menu_order = 0;
 
 	/**
+	 * The post's type, like post or page.
 	 *
 	 * @var string
 	 */
 	public $post_type = 'post';
 
 	/**
+	 * An attachment's mime type.
 	 *
 	 * @var string
 	 */
 	public $post_mime_type = '';
 
 	/**
+	 * Cached comment count.
 	 *
-	 * @var int
+	 * A numeric string, for compatibility reasons.
+	 *
+	 * @var string
 	 */
 	public $comment_count = 0;
 
 	/**
+	 * Stores the post object's sanitization level.
+	 *
+	 * Does not correspond to a DB field.
 	 *
 	 * @var string
 	 */
 	public $filter;
-
-	/**
-	 * Private variable used by post formats to cache parsed content.
-	 *
-	 * @since 3.6.0
-	 *
-	 * @var array
-	 * @access private
-	 */
-	public $format_content;
-
 
 	public static function get_instance( $post_id ) {
 		global $wpdb;
@@ -1082,6 +1105,7 @@ function get_post_types( $args = array(), $output = 'names', $operator = 'and' )
  *     * Defaults to false.
  *     * While the default settings of exclude_from_search, publicly_queryable, show_ui, and show_in_nav_menus are
  *       inherited from public, each does not rely on this relationship and controls a very specific intention.
+ * - hierarchical - Whether the post type is hierarchical (e.g. page). Defaults to false.
  * - exclude_from_search - Whether to exclude posts with this post type from front end search results.
  *     * If not set, the opposite of public's current value is used.
  * - publicly_queryable - Whether queries can be performed on the front end for the post type as part of parse_request().
@@ -1091,8 +1115,6 @@ function get_post_types( $args = array(), $output = 'names', $operator = 'and' )
  *     * If not set, the default is inherited from public.
  * - show_ui - Whether to generate a default UI for managing this post type in the admin.
  *     * If not set, the default is inherited from public.
- * - show_in_nav_menus - Makes this post type available for selection in navigation menus.
- *     * If not set, the default is inherited from public.
  * - show_in_menu - Where to show the post type in the admin menu.
  *     * If true, the post type is shown in its own top level menu.
  *     * If false, no menu is shown
@@ -1100,6 +1122,8 @@ function get_post_types( $args = array(), $output = 'names', $operator = 'and' )
  *       be placed as a sub menu of that.
  *     * show_ui must be true.
  *     * If not set, the default is inherited from show_ui
+ * - show_in_nav_menus - Makes this post type available for selection in navigation menus.
+ *     * If not set, the default is inherited from public.
  * - show_in_admin_bar - Makes this post type available via the admin bar.
  *     * If not set, the default is inherited from show_in_menu
  * - menu_position - The position in the menu order the post type should appear.
@@ -1113,7 +1137,6 @@ function get_post_types( $args = array(), $output = 'names', $operator = 'and' )
  *     * By default the capability_type is used as a base to construct capabilities.
  *     * You can see accepted values in {@link get_post_type_capabilities()}.
  * - map_meta_cap - Whether to use the internal default meta capability handling. Defaults to false.
- * - hierarchical - Whether the post type is hierarchical (e.g. page). Defaults to false.
  * - supports - An alias for calling add_post_type_support() directly. Defaults to title and editor.
  *     * See {@link add_post_type_support()} for documentation.
  * - register_meta_box_cb - Provide a callback function that will be called when setting up the
@@ -1146,37 +1169,55 @@ function get_post_types( $args = array(), $output = 'names', $operator = 'and' )
  *
  * @since 2.9.0
  * @uses $wp_post_types Inserts new post type object into the list
+ * @uses $wp_rewrite Gets default feeds
+ * @uses $wp Adds query vars
  *
- * @param string $post_type Post type key, must not exceed 20 characters
+ * @param string $post_type Post type key, must not exceed 20 characters.
  * @param array|string $args See optional args description above.
- * @return object|WP_Error the registered post type object, or an error object
+ * @return object|WP_Error the registered post type object, or an error object.
  */
 function register_post_type( $post_type, $args = array() ) {
 	global $wp_post_types, $wp_rewrite, $wp;
 
-	if ( !is_array($wp_post_types) )
+	if ( ! is_array( $wp_post_types ) )
 		$wp_post_types = array();
 
 	// Args prefixed with an underscore are reserved for internal use.
 	$defaults = array(
-		'labels' => array(), 'description' => '', 'publicly_queryable' => null, 'exclude_from_search' => null,
-		'capability_type' => 'post', 'capabilities' => array(), 'map_meta_cap' => null,
-		'_builtin' => false, '_edit_link' => 'post.php?post=%d', 'hierarchical' => false,
-		'public' => false, 'rewrite' => true, 'has_archive' => false, 'query_var' => true,
-		'supports' => array(), 'register_meta_box_cb' => null,
-		'taxonomies' => array(), 'show_ui' => null, 'menu_position' => null, 'menu_icon' => null,
-		'can_export' => true,
-		'show_in_nav_menus' => null, 'show_in_menu' => null, 'show_in_admin_bar' => null,
-		'delete_with_user' => null,
+		'labels'               => array(),
+		'description'          => '',
+		'public'               => false,
+		'hierarchical'         => false,
+		'exclude_from_search'  => null,
+		'publicly_queryable'   => null,
+		'show_ui'              => null,
+		'show_in_menu'         => null,
+		'show_in_nav_menus'    => null,
+		'show_in_admin_bar'    => null,
+		'menu_position'        => null,
+		'menu_icon'            => null,
+		'capability_type'      => 'post',
+		'capabilities'         => array(),
+		'map_meta_cap'         => null,
+		'supports'             => array(),
+		'register_meta_box_cb' => null,
+		'taxonomies'           => array(),
+		'has_archive'          => false,
+		'rewrite'              => true,
+		'query_var'            => true,
+		'can_export'           => true,
+		'delete_with_user'     => null,
+		'_builtin'             => false,
+		'_edit_link'           => 'post.php?post=%d',
 	);
-	$args = wp_parse_args($args, $defaults);
+	$args = wp_parse_args( $args, $defaults );
 	$args = (object) $args;
 
-	$post_type = sanitize_key($post_type);
+	$post_type = sanitize_key( $post_type );
 	$args->name = $post_type;
 
 	if ( strlen( $post_type ) > 20 )
-			return new WP_Error( 'post_type_too_long', __( 'Post types cannot exceed 20 characters in length' ) );
+		return new WP_Error( 'post_type_too_long', __( 'Post types cannot exceed 20 characters in length' ) );
 
 	// If not set, default to the setting for public.
 	if ( null === $args->publicly_queryable )
@@ -1194,7 +1235,7 @@ function register_post_type( $post_type, $args = array() ) {
 	if ( null === $args->show_in_admin_bar )
 		$args->show_in_admin_bar = true === $args->show_in_menu;
 
-	// Whether to show this type in nav-menus.php. Defaults to the setting for public.
+	// If not set, default to the setting for public.
 	if ( null === $args->show_in_nav_menus )
 		$args->show_in_nav_menus = $args->public;
 
@@ -1206,32 +1247,33 @@ function register_post_type( $post_type, $args = array() ) {
 	if ( empty( $args->capabilities ) && null === $args->map_meta_cap && in_array( $args->capability_type, array( 'post', 'page' ) ) )
 		$args->map_meta_cap = true;
 
+	// If not set, default to false.
 	if ( null === $args->map_meta_cap )
 		$args->map_meta_cap = false;
 
 	$args->cap = get_post_type_capabilities( $args );
-	unset($args->capabilities);
+	unset( $args->capabilities );
 
 	if ( is_array( $args->capability_type ) )
 		$args->capability_type = $args->capability_type[0];
 
-	if ( ! empty($args->supports) ) {
-		add_post_type_support($post_type, $args->supports);
-		unset($args->supports);
+	if ( ! empty( $args->supports ) ) {
+		add_post_type_support( $post_type, $args->supports );
+		unset( $args->supports );
 	} elseif ( false !== $args->supports ) {
 		// Add default features
-		add_post_type_support($post_type, array('title', 'editor'));
+		add_post_type_support( $post_type, array( 'title', 'editor' ) );
 	}
 
-	if ( false !== $args->query_var && !empty($wp) ) {
+	if ( false !== $args->query_var && ! empty( $wp ) ) {
 		if ( true === $args->query_var )
 			$args->query_var = $post_type;
 		else
-			$args->query_var = sanitize_title_with_dashes($args->query_var);
-		$wp->add_query_var($args->query_var);
+			$args->query_var = sanitize_title_with_dashes( $args->query_var );
+		$wp->add_query_var( $args->query_var );
 	}
 
-	if ( false !== $args->rewrite && ( is_admin() || '' != get_option('permalink_structure') ) ) {
+	if ( false !== $args->rewrite && ( is_admin() || '' != get_option( 'permalink_structure' ) ) ) {
 		if ( ! is_array( $args->rewrite ) )
 			$args->rewrite = array();
 		if ( empty( $args->rewrite['slug'] ) )
@@ -1250,9 +1292,9 @@ function register_post_type( $post_type, $args = array() ) {
 		}
 
 		if ( $args->hierarchical )
-			add_rewrite_tag("%$post_type%", '(.+?)', $args->query_var ? "{$args->query_var}=" : "post_type=$post_type&name=");
+			add_rewrite_tag( "%$post_type%", '(.+?)', $args->query_var ? "{$args->query_var}=" : "post_type=$post_type&pagename=" );
 		else
-			add_rewrite_tag("%$post_type%", '([^/]+)', $args->query_var ? "{$args->query_var}=" : "post_type=$post_type&name=");
+			add_rewrite_tag( "%$post_type%", '([^/]+)', $args->query_var ? "{$args->query_var}=" : "post_type=$post_type&name=" );
 
 		if ( $args->has_archive ) {
 			$archive_slug = $args->has_archive === true ? $args->rewrite['slug'] : $args->has_archive;
@@ -1271,16 +1313,18 @@ function register_post_type( $post_type, $args = array() ) {
 				add_rewrite_rule( "{$archive_slug}/{$wp_rewrite->pagination_base}/([0-9]{1,})/?$", "index.php?post_type=$post_type" . '&paged=$matches[1]', 'top' );
 		}
 
-		add_permastruct( $post_type, "{$args->rewrite['slug']}/%$post_type%", $args->rewrite );
+		$permastruct_args = $args->rewrite;
+		$permastruct_args['feed'] = $permastruct_args['feeds'];
+		add_permastruct( $post_type, "{$args->rewrite['slug']}/%$post_type%", $permastruct_args );
 	}
 
 	if ( $args->register_meta_box_cb )
-		add_action('add_meta_boxes_' . $post_type, $args->register_meta_box_cb, 10, 1);
+		add_action( 'add_meta_boxes_' . $post_type, $args->register_meta_box_cb, 10, 1 );
 
 	$args->labels = get_post_type_labels( $args );
 	$args->label = $args->labels->name;
 
-	$wp_post_types[$post_type] = $args;
+	$wp_post_types[ $post_type ] = $args;
 
 	add_action( 'future_' . $post_type, '_future_post_hook', 5, 2 );
 
@@ -1429,6 +1473,8 @@ function _post_type_meta_capabilities( $capabilities = null ) {
  * Above, the first default value is for non-hierarchical post types (like posts) and the second one is for hierarchical post types (like pages).
  *
  * @since 3.0.0
+ * @access private
+ *
  * @param object $post_type_object
  * @return object object with all the labels as member variables
  */
@@ -1462,6 +1508,7 @@ function get_post_type_labels( $post_type_object ) {
  * @since 3.0.0
  */
 function _get_custom_object_labels( $object, $nohier_vs_hier_defaults ) {
+	$object->labels = (array) $object->labels;
 
 	if ( isset( $object->label ) && empty( $object->labels['name'] ) )
 		$object->labels['name'] = $object->label;
@@ -1617,7 +1664,6 @@ function set_post_type( $post_id = 0, $post_type = 'post' ) {
  *     'post_status' - Default is 'publish'. Post status to retrieve.
  *
  * @since 1.2.0
- * @uses $wpdb
  * @uses WP_Query::query() See for more default arguments and information.
  * @link http://codex.wordpress.org/Template_Tags/get_posts
  *
@@ -1666,12 +1712,11 @@ function get_posts($args = null) {
  * Post meta data is called "Custom Fields" on the Administration Screen.
  *
  * @since 1.5.0
- * @uses $wpdb
  * @link http://codex.wordpress.org/Function_Reference/add_post_meta
  *
  * @param int $post_id Post ID.
  * @param string $meta_key Metadata name.
- * @param mixed $meta_value Metadata value.
+ * @param mixed $meta_value Metadata value. Must be serializable if non-scalar.
  * @param bool $unique Optional, default is false. Whether the same key should not be added.
  * @return int|bool Meta ID on success, false on failure.
  */
@@ -1691,12 +1736,11 @@ function add_post_meta($post_id, $meta_key, $meta_value, $unique = false) {
  * allows removing all metadata matching key, if needed.
  *
  * @since 1.5.0
- * @uses $wpdb
  * @link http://codex.wordpress.org/Function_Reference/delete_post_meta
  *
  * @param int $post_id post ID
  * @param string $meta_key Metadata name.
- * @param mixed $meta_value Optional. Metadata value.
+ * @param mixed $meta_value Optional. Metadata value. Must be serializable if non-scalar.
  * @return bool True on success, false on failure.
  */
 function delete_post_meta($post_id, $meta_key, $meta_value = '') {
@@ -1711,7 +1755,6 @@ function delete_post_meta($post_id, $meta_key, $meta_value = '') {
  * Retrieve post meta field for a post.
  *
  * @since 1.5.0
- * @uses $wpdb
  * @link http://codex.wordpress.org/Function_Reference/get_post_meta
  *
  * @param int $post_id Post ID.
@@ -1733,12 +1776,11 @@ function get_post_meta($post_id, $key = '', $single = false) {
  * If the meta field for the post does not exist, it will be added.
  *
  * @since 1.5.0
- * @uses $wpdb
  * @link http://codex.wordpress.org/Function_Reference/update_post_meta
  *
  * @param int $post_id Post ID.
  * @param string $meta_key Metadata key.
- * @param mixed $meta_value Metadata value.
+ * @param mixed $meta_value Metadata value. Must be serializable if non-scalar.
  * @param mixed $prev_value Optional. Previous value to check before removing.
  * @return bool True on success, false on failure.
  */
@@ -1754,7 +1796,6 @@ function update_post_meta($post_id, $meta_key, $meta_value, $prev_value = '') {
  * Delete everything from post meta matching meta key.
  *
  * @since 2.3.0
- * @uses $wpdb
  *
  * @param string $post_meta_key Key to search for when deleting.
  * @return bool Whether the post meta key was deleted from the database
@@ -2029,7 +2070,7 @@ function unstick_post($post_id) {
 }
 
 /**
- * Count number of posts of a post type and is user has permissions to view.
+ * Count number of posts of a post type and if user has permissions to view.
  *
  * This function provides an efficient method of finding the amount of post's
  * type a blog has. Another method is to count the amount of items in
@@ -2039,8 +2080,9 @@ function unstick_post($post_id) {
  * The $perm parameter checks for 'readable' value and if the user can read
  * private posts, it will display that for the user that is signed in.
  *
- * @since 2.5.0
  * @link http://codex.wordpress.org/Template_Tags/wp_count_posts
+ *
+ * @since 2.5.0
  *
  * @param string $type Optional. Post type to retrieve count
  * @param string $perm Optional. 'readable' or empty.
@@ -2049,9 +2091,12 @@ function unstick_post($post_id) {
 function wp_count_posts( $type = 'post', $perm = '' ) {
 	global $wpdb;
 
+	if ( ! post_type_exists( $type ) )
+		return new stdClass;
+
 	$user = wp_get_current_user();
 
-	$cache_key = $type;
+	$cache_key = 'posts-' . $type;
 
 	$query = "SELECT post_status, COUNT( * ) AS num_posts FROM {$wpdb->posts} WHERE post_type = %s";
 	if ( 'readable' == $perm && is_user_logged_in() ) {
@@ -2063,23 +2108,32 @@ function wp_count_posts( $type = 'post', $perm = '' ) {
 	}
 	$query .= ' GROUP BY post_status';
 
-	$count = wp_cache_get($cache_key, 'counts');
-	if ( false !== $count )
-		return $count;
+	$counts = wp_cache_get( $cache_key, 'counts' );
+	if ( false !== $counts ) {
+		/**
+		 * Modify returned post counts by status for the current post type.
+		 *
+		 * @since 3.7.0
+		 *
+		 * @param object $counts An object containing the current post_type's post counts by status.
+		 * @param string $type   The post type.
+		 * @param string $perm   The permission to determine if the posts are 'readable' by the current user.
+		 */
+		return apply_filters( 'count_posts', $counts, $type, $perm );
+	}
 
-	$count = $wpdb->get_results( $wpdb->prepare( $query, $type ), ARRAY_A );
+	$results = (array) $wpdb->get_results( $wpdb->prepare( $query, $type ), ARRAY_A );
 
-	$stats = array();
-	foreach ( get_post_stati() as $state )
-		$stats[$state] = 0;
+	$counts = array_fill_keys( get_post_stati(), 0 );
 
-	foreach ( (array) $count as $row )
-		$stats[$row['post_status']] = $row['num_posts'];
+	foreach ( $results as $row )
+		$counts[ $row['post_status'] ] = $row['num_posts'];
 
-	$stats = (object) $stats;
-	wp_cache_set($cache_key, $stats, 'counts');
+	$counts = (object) $counts;
+	wp_cache_set( $cache_key, $counts, 'counts' );
 
-	return $stats;
+	//duplicate_hook
+	return apply_filters( 'count_posts', $counts, $type, $perm );
 }
 
 /**
@@ -2617,7 +2671,7 @@ function wp_get_recent_posts( $args = array(), $output = ARRAY_A ) {
  * @uses $user_ID
  * @uses do_action() Calls 'pre_post_update' on post ID if this is an update.
  * @uses do_action() Calls 'edit_post' action on post ID and post data if this is an update.
- * @uses do_action() Calls 'save_post' and 'wp_insert_post' on post id and post data just before returning.
+ * @uses do_action() Calls 'save_post_{$post_type}', 'save_post' and 'wp_insert_post' on post id and post data just before returning.
  * @uses apply_filters() Calls 'wp_insert_post_data' passing $data, $postarr prior to database update or insert.
  * @uses wp_transition_post_status()
  *
@@ -2879,8 +2933,9 @@ function wp_insert_post($postarr, $wp_error = false) {
 		do_action( 'post_updated', $post_ID, $post_after, $post_before);
 	}
 
-	do_action('save_post', $post_ID, $post);
-	do_action('wp_insert_post', $post_ID, $post);
+	do_action( "save_post_{$post->post_type}", $post_ID, $post, $update );
+	do_action( 'save_post', $post_ID, $post, $update );
+	do_action( 'wp_insert_post', $post_ID, $post, $update );
 
 	return $post_ID;
 }
@@ -2949,7 +3004,7 @@ function wp_update_post( $postarr = array(), $wp_error = false ) {
  *
  * @since 2.1.0
  * @uses $wpdb
- * @uses do_action() Calls 'edit_post', 'save_post', and 'wp_insert_post' on post_id and post data.
+ * @uses do_action() Calls 'edit_post', 'save_post_{$post_type}', 'save_post' and 'wp_insert_post' on post_id and post data.
  *
  * @param int|object $post Post ID or object.
  */
@@ -2971,8 +3026,9 @@ function wp_publish_post( $post ) {
 	wp_transition_post_status( 'publish', $old_status, $post );
 
 	do_action( 'edit_post', $post->ID, $post );
-	do_action( 'save_post', $post->ID, $post );
-	do_action( 'wp_insert_post', $post->ID, $post );
+	do_action( "save_post_{$post->post_type}", $post->ID, $post, true );
+	do_action( 'save_post', $post->ID, $post, true );
+	do_action( 'wp_insert_post', $post->ID, $post, true );
 }
 
 /**
@@ -3185,24 +3241,28 @@ function wp_set_post_terms( $post_id = 0, $tags = '', $taxonomy = 'post_tag', $a
  * @since 2.1.0
  *
  * @param int $post_ID Post ID.
- * @param array $post_categories Optional. List of categories.
+ * @param array|int $post_categories Optional. List of categories or ID of category.
+ * @param bool $append If true, don't delete existing categories, just add on. If false, replace the categories with the new categories.
  * @return bool|mixed
  */
-function wp_set_post_categories($post_ID = 0, $post_categories = array()) {
+function wp_set_post_categories( $post_ID = 0, $post_categories = array(), $append = false ) {
 	$post_ID = (int) $post_ID;
 	$post_type = get_post_type( $post_ID );
 	$post_status = get_post_status( $post_ID );
 	// If $post_categories isn't already an array, make it one:
-	if ( !is_array($post_categories) || empty($post_categories) ) {
-		if ( 'post' == $post_type && 'auto-draft' != $post_status )
+	$post_categories = (array) $post_categories;
+	if ( empty( $post_categories ) ) {
+		if ( 'post' == $post_type && 'auto-draft' != $post_status ) {
 			$post_categories = array( get_option('default_category') );
-		else
+			$append = false;
+		} else {
 			$post_categories = array();
+		}
 	} else if ( 1 == count($post_categories) && '' == reset($post_categories) ) {
 		return true;
 	}
 
-	return wp_set_post_terms($post_ID, $post_categories, 'category');
+	return wp_set_post_terms( $post_ID, $post_categories, 'category', $append );
 }
 
 /**
@@ -3268,7 +3328,6 @@ function add_ping($post_id, $uri) {
  * Retrieve enclosures already enclosed for a post.
  *
  * @since 1.5.0
- * @uses $wpdb
  *
  * @param int $post_id Post ID.
  * @return array List of enclosures
@@ -3551,15 +3610,18 @@ function _page_traverse_name( $page_id, &$children, &$result ){
  * @since 1.5.0
  *
  * @param mixed $page Page object or page ID.
- * @return string Page URI.
+ * @return string|false Page URI, false on error.
  */
-function get_page_uri($page) {
+function get_page_uri( $page ) {
 	$page = get_post( $page );
+
+	if ( ! $page )
+		return false;
 
 	$uri = $page->post_name;
 
 	foreach ( $page->ancestors as $parent ) {
-		$uri = get_post( $parent )->post_name . "/" . $uri;
+		$uri = get_post( $parent )->post_name . '/' . $uri;
 	}
 
 	return $uri;
@@ -3568,17 +3630,41 @@ function get_page_uri($page) {
 /**
  * Retrieve a list of pages.
  *
- * The defaults that can be overridden are the following: 'child_of',
- * 'sort_order', 'sort_column', 'post_title', 'hierarchical', 'exclude',
- * 'include', 'meta_key', 'meta_value','authors', 'number', and 'offset'.
+ * @global wpdb $wpdb WordPress database abstraction object
  *
  * @since 1.5.0
- * @uses $wpdb
  *
- * @param mixed $args Optional. Array or string of options that overrides defaults.
- * @return array List of pages matching defaults or $args
+ * @param mixed $args {
+ *     Array or string of arguments. Optional.
+ *
+ *     @type int    'child_of'     Page ID to return child and grandchild pages of. Default 0, or no restriction.
+ *     @type string 'sort_order'   How to sort retrieved pages.
+ *                                 Default 'ASC'. Accepts 'ASC', 'DESC'.
+ *     @type string 'sort_column'  What columns to sort pages by, comma-separated.
+ *                                 Default 'post_title'. Accepts 'post_author', 'post_date', 'post_title', 'post_name',
+ *                                 'post_modified', 'post_modified_gmt', 'menu_order', 'post_parent', 'ID', 'rand',
+ *                                 'comment_count'. 'post_' can be omitted for any values that start with it.
+ *     @type bool   'hierarchical' Whether to return pages hierarchically. Default true.
+ *     @type array  'exclude'      Array of page IDs to exclude.
+ *     @type array  'include'      Array of page IDs to include. Cannot be used with 'child_of', 'parent', 'exclude',
+ *                                 'meta_key', 'meta_value', or 'hierarchical'.
+ *     @type string 'meta_key'     Only include pages with this meta key.
+ *     @type string 'meta_value'   Only include pages with this meta value.
+ *     @type string 'authors'      A comma-separated list of author IDs.
+ *     @type int    'parent'       Page ID to return direct children of. 'hierarchical' must be false.
+ *                                 Default -1, or no restriction.
+ *     @type int    'exclude_tree' Remove all children of the given ID from returned pages.
+ *     @type int    'number'       The number of pages to return. Default 0, or all pages.
+ *     @type int    'offset'       The number of pages to skip before returning. Requires 'number'.
+ *                                 Default 0.
+ *     @type string 'post_type'    The post type to query.
+ *                                 Default 'page'.
+ *     @type string 'post_status'  A comma-separated list of post status types to include.
+ *                                 Default 'publish'.
+ * }
+ * @return array List of pages matching defaults or $args.
  */
-function get_pages($args = '') {
+function get_pages( $args = array() ) {
 	global $wpdb;
 
 	$pages = false;
@@ -3602,6 +3688,9 @@ function get_pages($args = '') {
 	$hierarchical_post_types = get_post_types( array( 'hierarchical' => true ) );
 	if ( !in_array( $post_type, $hierarchical_post_types ) )
 		return $pages;
+
+	if ( $parent && ! $child_of )
+		$hierarchical = false;
 
 	// Make sure we have a valid post status
 	if ( !is_array( $post_status ) )
@@ -3629,7 +3718,7 @@ function get_pages($args = '') {
 		$cache = array();
 
 	$inclusions = '';
-	if ( !empty($include) ) {
+	if ( ! empty( $include ) ) {
 		$child_of = 0; //ignore child_of, parent, exclude, meta_key, and meta_value params if using include
 		$parent = -1;
 		$exclude = '';
@@ -3637,32 +3726,16 @@ function get_pages($args = '') {
 		$meta_value = '';
 		$hierarchical = false;
 		$incpages = wp_parse_id_list( $include );
-		if ( ! empty( $incpages ) ) {
-			foreach ( $incpages as $incpage ) {
-				if (empty($inclusions))
-					$inclusions = $wpdb->prepare(' AND ( ID = %d ', $incpage);
-				else
-					$inclusions .= $wpdb->prepare(' OR ID = %d ', $incpage);
-			}
-		}
+		if ( ! empty( $incpages ) )
+			$inclusions = ' AND ID IN (' . implode( ',', $incpages ) .  ')';
 	}
-	if (!empty($inclusions))
-		$inclusions .= ')';
 
 	$exclusions = '';
-	if ( !empty($exclude) ) {
+	if ( ! empty( $exclude ) ) {
 		$expages = wp_parse_id_list( $exclude );
-		if ( ! empty( $expages ) ) {
-			foreach ( $expages as $expage ) {
-				if (empty($exclusions))
-					$exclusions = $wpdb->prepare(' AND ( ID <> %d ', $expage);
-				else
-					$exclusions .= $wpdb->prepare(' AND ID <> %d ', $expage);
-			}
-		}
+		if ( ! empty( $expages ) )
+			$exclusions = ' AND ID NOT IN (' . implode( ',', $expages ) .  ')';
 	}
-	if (!empty($exclusions))
-		$exclusions .= ')';
 
 	$author_query = '';
 	if (!empty($authors)) {
@@ -3705,8 +3778,13 @@ function get_pages($args = '') {
 
 	}
 
-	if ( $parent >= 0 )
+	if ( is_array( $parent ) ) {
+		$post_parent__in = implode( ',', array_map( 'absint', (array) $parent ) );
+		if ( ! empty( $post_parent__in ) )
+			$where .= " AND post_parent IN ($post_parent__in)";
+	} elseif ( $parent >= 0 ) {
 		$where .= $wpdb->prepare(' AND post_parent = %d ', $parent);
+	}
 
 	if ( 1 == count( $post_status ) ) {
 		$where_post_type = $wpdb->prepare( "post_type = %s AND post_status = %s", $post_type, array_shift( $post_status ) );
@@ -4642,7 +4720,6 @@ function clean_post_cache( $post ) {
  * @subpackage Cache
  * @since 1.5.0
  *
- * @uses $wpdb
  * @uses update_post_cache()
  * @uses update_object_term_cache()
  * @uses update_postmeta_cache()
@@ -4696,8 +4773,6 @@ function update_post_caches(&$posts, $post_type = 'post', $update_term_cache = t
  * @package WordPress
  * @subpackage Cache
  * @since 2.1.0
- *
- * @uses $wpdb
  *
  * @param array $post_ids List of post IDs.
  * @return bool|array Returns false if there is nothing to update or an array of metadata.

@@ -15,11 +15,14 @@ function cc_login_footer() {
 	if ( !wp_is_mobile() ) : ?>
 	<div id="footer">
 		<div class="padder">
+			<div class="site-info">
+			<ul>
+				<li><a href="http://www.cij.co.jp/">運営会社</a></li>
+				<li><a href="mailto:<?php echo get_option('admin_email'); ?>">お問い合わせ</a></li>
+			</ul>
+			</div>
 			<div class="copyright">
 				<p>&copy; <?php echo date('Y') ?> Clover Cafe. All rights reserved.</p>
-			</div>
-			<div class="contact-us">
-				<a href="mailto:<?php echo get_option('admin_email'); ?>"><img src="<?php echo $root_dir.'login/16_email.png'?>" alt="Email" /><p>お問い合わせ</p></a>
 			</div>
 		</div><!-- .padder -->
 	</div><!-- #footer -->

@@ -254,8 +254,9 @@ function retrieve_password() {
 
 	$title = apply_filters('retrieve_password_title', $title);
 	$message = apply_filters('retrieve_password_message', $message, $key);
+	$header = apply_filters( 'cc_append_cc_email_address', $user_data->ID );
 
-	if ( $message && !wp_mail($user_email, $title, $message) )
+	if ( $message && !wp_mail($user_email, $title, $message, $header) )
 		wp_die( __('The e-mail could not be sent.') . "<br />\n" . __('Possible reason: your host may have disabled the mail() function...') );
 
 	return true;

@@ -1873,8 +1873,8 @@ function wp_check_filetype( $filename, $mimes = null ) {
  *
  * @since 3.0.0
  *
- * @param string $file Full path to the image.
- * @param string $filename The filename of the image (may differ from $file due to $file being in a tmp directory)
+ * @param string $file Full path to the file.
+ * @param string $filename The name of the file (may differ from $file due to $file being in a tmp directory)
  * @param array $mimes Optional. Key is the file extension with value as the mime type.
  * @return array Values for the extension, MIME, and either a corrected filename or false if original $filename is valid
  */
@@ -3349,10 +3349,10 @@ function is_main_site( $site_id = null ) {
 function is_main_network( $network_id = null ) {
 	global $current_site, $wpdb;
 
-	$current_network_id = (int) $current_site->id;
-
 	if ( ! is_multisite() )
 		return true;
+
+	$current_network_id = (int) $current_site->id;
 
 	if ( ! $network_id )
 		$network_id = $current_network_id;
@@ -3700,19 +3700,6 @@ function get_file_data( $file, $default_headers, $context = '' ) {
 	}
 
 	return $all_headers;
-}
-
-/**
- * Used internally to tidy up the search terms.
- *
- * @access private
- * @since 2.9.0
- *
- * @param string $t
- * @return string
- */
-function _search_terms_tidy($t) {
-	return trim($t, "\"'\n\r ");
 }
 
 /**

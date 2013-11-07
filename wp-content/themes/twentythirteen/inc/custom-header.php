@@ -40,7 +40,7 @@ function twentythirteen_custom_header_setup() {
 
 	add_theme_support( 'custom-header', $args );
 
-	/**
+	/*
 	 * Default custom headers packaged with the theme.
 	 * %s is a placeholder for the theme template directory URI.
 	 */
@@ -72,7 +72,7 @@ add_action( 'after_setup_theme', 'twentythirteen_custom_header_setup', 11 );
  * @return void
  */
 function twentythirteen_custom_header_fonts() {
-	// Add Open Sans and Bitter fonts.
+	// Add Source Sans Pro and Bitter fonts.
 	wp_enqueue_style( 'twentythirteen-fonts', twentythirteen_fonts_url(), array(), null );
 
 	// Add Genericons font.

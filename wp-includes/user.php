@@ -212,6 +212,8 @@ function count_many_users_posts( $users, $post_type = 'post', $public_only = fal
  * @return int The current user's ID
  */
 function get_current_user_id() {
+	if ( ! function_exists( 'wp_get_current_user' ) )
+		return 0;
 	$user = wp_get_current_user();
 	return ( isset( $user->ID ) ? (int) $user->ID : 0 );
 }
@@ -248,8 +250,9 @@ function get_user_option( $option, $user = 0, $deprecated = '' ) {
 	if ( ! $user = get_userdata( $user ) )
 		return false;
 
-	if ( $user->has_prop( $wpdb->prefix . $option ) ) // Blog specific
-		$result = $user->get( $wpdb->prefix . $option );
+	$prefix = $wpdb->get_blog_prefix();
+	if ( $user->has_prop( $prefix . $option ) ) // Blog specific
+		$result = $user->get( $prefix . $option );
 	elseif ( $user->has_prop( $option ) ) // User specific and cross-blog
 		$result = $user->get( $option );
 	else
@@ -280,7 +283,7 @@ function update_user_option( $user_id, $option_name, $newvalue, $global = false 
 	global $wpdb;
 
 	if ( !$global )
-		$option_name = $wpdb->prefix . $option_name;
+		$option_name = $wpdb->get_blog_prefix() . $option_name;
 
 	return update_user_meta( $user_id, $option_name, $newvalue );
 }
@@ -304,7 +307,7 @@ function delete_user_option( $user_id, $option_name, $global = false ) {
 	global $wpdb;
 
 	if ( !$global )
-		$option_name = $wpdb->prefix . $option_name;
+		$option_name = $wpdb->get_blog_prefix() . $option_name;
 	return delete_user_meta( $user_id, $option_name );
 }
 
@@ -1539,58 +1542,105 @@ function wp_create_user($username, $password, $email = '') {
  */
 function _get_additional_user_keys( $user ) {
 	$keys = array( 'first_name', 'last_name', 'nickname', 'description', 'rich_editing', 'comment_shortcuts', 'admin_color', 'use_ssl', 'show_admin_bar_front' );
-	return array_merge( $keys, array_keys( _wp_get_user_contactmethods( $user ) ) );
+	return array_merge( $keys, array_keys( wp_get_user_contact_methods( $user ) ) );
 }
 
 /**
- * Set up the contact methods.
+ * Set up the user contact methods.
  *
  * Default contact methods were removed in 3.6. A filter dictates contact methods.
  *
- * @since 2.9.0
- * @access private
+ * @since 3.7.0
  *
- * @param object $user User data object (optional).
- * @return array $user_contactmethods Array of contact methods and their labels.
+ * @param WP_User $user Optional. WP_User object.
+ * @return array Array of contact methods and their labels.
  */
-function _wp_get_user_contactmethods( $user = null ) {
-	$user_contactmethods = array();
+function wp_get_user_contact_methods( $user = null ) {
+	$methods = array();
 	if ( get_site_option( 'initial_db_version' ) < 23588 ) {
-		$user_contactmethods = array(
+		$methods = array(
 			'aim'    => __( 'AIM' ),
 			'yim'    => __( 'Yahoo IM' ),
 			'jabber' => __( 'Jabber / Google Talk' )
 		);
 	}
-	return apply_filters( 'user_contactmethods', $user_contactmethods, $user );
+
+	/**
+	 * Filter the user contact methods.
+	 *
+	 * @since 2.9.0
+	 *
+	 * @param array   $methods Array of contact methods and their labels.
+ 	 * @param WP_User $user    Optional. WP_User object.
+	 */
+	return apply_filters( 'user_contactmethods', $methods, $user );
+}
+
+/**
+ * The old private function for setting up user contact methods.
+ *
+ * @since 2.9.0
+ * @access private
+ */
+function _wp_get_user_contactmethods( $user = null ) {
+	return wp_get_user_contact_methods( $user );
 }
 
 /**
  * Retrieves a user row based on password reset key and login
  *
+ * A key is considered 'expired' if it exactly matches the value of the
+ * user_activation_key field, rather than being matched after going through the
+ * hashing process. This field is now hashed; old values are no longer accepted
+ * but have a different WP_Error code so good user feedback can be provided.
+ *
  * @uses $wpdb WordPress Database object
  *
- * @param string $key Hash to validate sending user's password
- * @param string $login The user login
- * @return object|WP_Error User's database row on success, error object for invalid keys
+ * @param string $key       Hash to validate sending user's password.
+ * @param string $login     The user login.
+ * @return WP_User|WP_Error WP_User object on success, WP_Error object for invalid or expired keys.
  */
-function check_password_reset_key( $key, $login ) {
-	global $wpdb;
+function check_password_reset_key($key, $login) {
+	global $wpdb, $wp_hasher;
 
-	$key = preg_replace( '/[^a-z0-9]/i', '', $key );
+	$key = preg_replace('/[^a-z0-9]/i', '', $key);
 
-	if ( empty( $key ) || ! is_string( $key ) )
-		return new WP_Error( 'invalid_key', __( 'Invalid key' ) );
+	if ( empty( $key ) || !is_string( $key ) )
+		return new WP_Error('invalid_key', __('Invalid key'));
 
-	if ( empty( $login ) || ! is_string( $login ) )
-		return new WP_Error( 'invalid_key', __( 'Invalid key' ) );
+	if ( empty($login) || !is_string($login) )
+		return new WP_Error('invalid_key', __('Invalid key'));
 
-	$user = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $wpdb->users WHERE user_activation_key = %s AND user_login = %s", $key, $login ) );
+	$row = $wpdb->get_row( $wpdb->prepare( "SELECT ID, user_activation_key FROM $wpdb->users WHERE user_login = %s", $login ) );
+	if ( ! $row )
+		return new WP_Error('invalid_key', __('Invalid key'));
 
-	if ( empty( $user ) )
-		return new WP_Error( 'invalid_key', __( 'Invalid key' ) );
+	if ( empty( $wp_hasher ) ) {
+		require_once ABSPATH . 'wp-includes/class-phpass.php';
+		$wp_hasher = new PasswordHash( 8, true );
+	}
 
-	return $user;
+	if ( $wp_hasher->CheckPassword( $key, $row->user_activation_key ) )
+		return get_userdata( $row->ID );
+
+	if ( $key === $row->user_activation_key ) {
+		$return = new WP_Error( 'expired_key', __( 'Invalid key' ) );
+		$user_id = $row->ID;
+
+		/**
+		 * Filter the return value of check_password_reset_key() when an
+		 * old-style key is used (plain-text key was stored in the database).
+		 *
+		 * @since 3.7.0
+		 *
+		 * @param WP_Error $return  A WP_Error object denoting an expired key.
+		 *                          Return a WP_User object to validate the key.
+		 * @param int      $user_id The matched user ID.
+		 */
+		return apply_filters( 'password_reset_key_expired', $return, $user_id );
+	}
+
+	return new WP_Error( 'invalid_key', __( 'Invalid key' ) );
 }
 
 /**

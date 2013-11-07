@@ -16,7 +16,7 @@
  */
 
 /** WordPress Administration Bootstrap */
-require_once('./admin.php');
+require_once( dirname( __FILE__ ) . '/admin.php' );
 
 $title = __('Settings');
 $this_file = 'options.php';
@@ -30,15 +30,15 @@ if ( empty($option_page) ) // This is for back compat and will eventually be rem
 	$option_page = 'options';
 else
 
-	/** 
-	 * Filter the capability required when using the Settings API. 
-	 * 
-	 * By default, the options groups for all registered settings require the manage_options capability. 
-	 * This filter is required to change the capability required for a certain options page. 
-	 * 
+	/**
+	 * Filter the capability required when using the Settings API.
+	 *
+	 * By default, the options groups for all registered settings require the manage_options capability.
+	 * This filter is required to change the capability required for a certain options page.
+	 *
 	 * @since 3.2.0
-	 * 
-	 * @param string $capability The capability used for the page, which is manage_options by default. 
+	 *
+	 * @param string $capability The capability used for the page, which is manage_options by default.
 	 */
 	$capability = apply_filters( "option_page_capability_{$option_page}", $capability );
 
@@ -106,7 +106,7 @@ if ( !is_multisite() ) {
 } else {
 	$whitelist_options['general'][] = 'new_admin_email';
 	$whitelist_options['general'][] = 'WPLANG';
-	
+
 	/**
 	 * Toggle post-by-email functionality.
 	 *
@@ -119,8 +119,8 @@ if ( !is_multisite() ) {
 }
 
 /**
- * Filter the options white list. 
- * 
+ * Filter the options white list.
+ *
  * @since 2.7.0
  *
  * @param array White list options.
@@ -197,7 +197,7 @@ if ( 'update' == $action ) {
 	exit;
 }
 
-include('./admin-header.php'); ?>
+include( ABSPATH . 'wp-admin/admin-header.php' ); ?>
 
 <div class="wrap">
 <?php screen_icon(); ?>
@@ -253,4 +253,4 @@ endforeach;
 </div>
 
 <?php
-include('./admin-footer.php');
+include( ABSPATH . 'wp-admin/admin-footer.php' );

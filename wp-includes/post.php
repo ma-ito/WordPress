@@ -177,11 +177,10 @@ add_action( 'init', 'create_initial_post_types', 0 ); // highest priority
  * attached filename through a filter.
  *
  * @since 2.0.0
- * @uses apply_filters() Calls 'get_attached_file' on file path and attachment ID.
  *
  * @param int $attachment_id Attachment ID.
  * @param bool $unfiltered Whether to apply filters.
- * @return string|bool The file path to the attached file, or false if the attachment does not exist.
+ * @return string|bool The file path to where the attached file should be, false otherwise.
  */
 function get_attached_file( $attachment_id, $unfiltered = false ) {
 	$file = get_post_meta( $attachment_id, '_wp_attached_file', true );
@@ -1139,8 +1138,8 @@ function get_post_types( $args = array(), $output = 'names', $operator = 'and' )
  * - map_meta_cap - Whether to use the internal default meta capability handling. Defaults to false.
  * - supports - An alias for calling add_post_type_support() directly. Defaults to title and editor.
  *     * See {@link add_post_type_support()} for documentation.
- * - register_meta_box_cb - Provide a callback function that will be called when setting up the
- *     meta boxes for the edit form. Do remove_meta_box() and add_meta_box() calls in the callback.
+ * - register_meta_box_cb - Provide a callback function that sets up the meta boxes
+ *     for the edit form. Do remove_meta_box() and add_meta_box() calls in the callback.
  * - taxonomies - An array of taxonomy identifiers that will be registered for the post type.
  *     * Default is no taxonomies.
  *     * Taxonomies can be registered later with register_taxonomy() or register_taxonomy_for_object_type().
@@ -2109,31 +2108,27 @@ function wp_count_posts( $type = 'post', $perm = '' ) {
 	$query .= ' GROUP BY post_status';
 
 	$counts = wp_cache_get( $cache_key, 'counts' );
-	if ( false !== $counts ) {
-		/**
-		 * Modify returned post counts by status for the current post type.
-		 *
-		 * @since 3.7.0
-		 *
-		 * @param object $counts An object containing the current post_type's post counts by status.
-		 * @param string $type   The post type.
-		 * @param string $perm   The permission to determine if the posts are 'readable' by the current user.
-		 */
-		return apply_filters( 'count_posts', $counts, $type, $perm );
+	if ( false === $counts ) {
+		$results = (array) $wpdb->get_results( $wpdb->prepare( $query, $type ), ARRAY_A );
+		$counts = array_fill_keys( get_post_stati(), 0 );
+
+		foreach ( $results as $row )
+			$counts[ $row['post_status'] ] = $row['num_posts'];
+
+		$counts = (object) $counts;
+		wp_cache_set( $cache_key, $counts, 'counts' );
 	}
 
-	$results = (array) $wpdb->get_results( $wpdb->prepare( $query, $type ), ARRAY_A );
-
-	$counts = array_fill_keys( get_post_stati(), 0 );
-
-	foreach ( $results as $row )
-		$counts[ $row['post_status'] ] = $row['num_posts'];
-
-	$counts = (object) $counts;
-	wp_cache_set( $cache_key, $counts, 'counts' );
-
-	//duplicate_hook
-	return apply_filters( 'count_posts', $counts, $type, $perm );
+	/**
+	 * Modify returned post counts by status for the current post type.
+	 *
+	 * @since 3.7.0
+	 *
+	 * @param object $counts An object containing the current post_type's post counts by status.
+	 * @param string $type   The post type.
+	 * @param string $perm   The permission to determine if the posts are 'readable' by the current user.
+	 */
+	return apply_filters( 'wp_count_posts', $counts, $type, $perm );
 }
 
 /**
@@ -2155,13 +2150,21 @@ function wp_count_attachments( $mime_type = '' ) {
 	$and = wp_post_mime_type_where( $mime_type );
 	$count = $wpdb->get_results( "SELECT post_mime_type, COUNT( * ) AS num_posts FROM $wpdb->posts WHERE post_type = 'attachment' AND post_status != 'trash' $and GROUP BY post_mime_type", ARRAY_A );
 
-	$stats = array();
+	$counts = array();
 	foreach( (array) $count as $row ) {
-		$stats[$row['post_mime_type']] = $row['num_posts'];
+		$counts[ $row['post_mime_type'] ] = $row['num_posts'];
 	}
-	$stats['trash'] = $wpdb->get_var( "SELECT COUNT( * ) FROM $wpdb->posts WHERE post_type = 'attachment' AND post_status = 'trash' $and");
+	$counts['trash'] = $wpdb->get_var( "SELECT COUNT( * ) FROM $wpdb->posts WHERE post_type = 'attachment' AND post_status = 'trash' $and");
 
-	return (object) $stats;
+	/**
+	 * Modify returned attachment counts by mime type.
+	 *
+	 * @since 3.7.0
+	 *
+	 * @param object $counts    An object containing the attachment counts by mime type.
+	 * @param string $mime_type The mime type pattern used to filter the attachments counted.
+	 */
+	return apply_filters( 'wp_count_attachments', (object) $counts, $mime_type );
 }
 
 /**
@@ -2314,20 +2317,6 @@ function wp_delete_post( $postid = 0, $force_delete = false ) {
 		$wpdb->update( $wpdb->posts, $parent_data, $parent_where + array( 'post_type' => $post->post_type ) );
 	}
 
-	if ( 'page' == $post->post_type) {
-	 	// if the page is defined in option page_on_front or post_for_posts,
-		// adjust the corresponding options
-		if ( get_option('page_on_front') == $postid ) {
-			update_option('show_on_front', 'posts');
-			delete_option('page_on_front');
-		}
-		if ( get_option('page_for_posts') == $postid ) {
-			delete_option('page_for_posts');
-		}
-	} else {
-		unstick_post($postid);
-	}
-
 	// Do raw query. wp_get_post_revisions() is filtered
 	$revision_ids = $wpdb->get_col( $wpdb->prepare( "SELECT ID FROM $wpdb->posts WHERE post_parent = %d AND post_type = 'revision'", $postid ) );
 	// Use wp_delete_post (via wp_delete_post_revision) again. Ensures any meta/misplaced data gets cleaned up.
@@ -2362,6 +2351,34 @@ function wp_delete_post( $postid = 0, $force_delete = false ) {
 
 	return $post;
 }
+
+/**
+ * Resets the page_on_front, show_on_front, and page_for_post settings when a
+ * linked page is deleted or trashed.
+ *
+ * Also ensures the post is no longer sticky.
+ *
+ * @access private
+ * @since 3.7.0
+ * @param $post_id
+ */
+function _reset_front_page_settings_for_post( $post_id ) {
+	$post = get_post( $post_id );
+	if ( 'page' == $post->post_type ) {
+	 	// If the page is defined in option page_on_front or post_for_posts,
+		// adjust the corresponding options
+		if ( get_option( 'page_on_front' ) == $post->ID ) {
+			update_option( 'show_on_front', 'posts' );
+			update_option( 'page_on_front', 0 );
+		}
+		if ( get_option( 'page_for_posts' ) == $post->ID ) {
+			delete_option( 'page_for_posts', 0 );
+		}
+	}
+	unstick_post( $post->ID );
+}
+add_action( 'before_delete_post', '_reset_front_page_settings_for_post' );
+add_action( 'wp_trash_post',      '_reset_front_page_settings_for_post' );
 
 /**
  * Moves a post or page to the Trash
@@ -2643,7 +2660,7 @@ function wp_get_recent_posts( $args = array(), $output = ARRAY_A ) {
 }
 
 /**
- * Insert a post.
+ * Insert or update a post.
  *
  * If the $postarr parameter has 'ID' set to a value, then post will be updated.
  *
@@ -2651,38 +2668,38 @@ function wp_get_recent_posts( $args = array(), $output = ARRAY_A ) {
  * and 'post_date_gmt' keys. You can close the comments or open the comments by
  * setting the value for 'comment_status' key.
  *
- * The defaults for the parameter $postarr are:
- *     'post_status'   - Default is 'draft'.
- *     'post_type'     - Default is 'post'.
- *     'post_author'   - Default is current user ID ($user_ID). The ID of the user who added the post.
- *     'ping_status'   - Default is the value in 'default_ping_status' option.
- *                       Whether the attachment can accept pings.
- *     'post_parent'   - Default is 0. Set this for the post it belongs to, if any.
- *     'menu_order'    - Default is 0. The order it is displayed.
- *     'to_ping'       - Whether to ping.
- *     'pinged'        - Default is empty string.
- *     'post_password' - Default is empty string. The password to access the attachment.
- *     'guid'          - Global Unique ID for referencing the attachment.
- *     'post_content_filtered' - Post content filtered.
- *     'post_excerpt'  - Post excerpt.
+ * @global wpdb $wpdb    WordPress database abstraction object.
  *
  * @since 1.0.0
- * @uses $wpdb
- * @uses $user_ID
- * @uses do_action() Calls 'pre_post_update' on post ID if this is an update.
- * @uses do_action() Calls 'edit_post' action on post ID and post data if this is an update.
- * @uses do_action() Calls 'save_post_{$post_type}', 'save_post' and 'wp_insert_post' on post id and post data just before returning.
- * @uses apply_filters() Calls 'wp_insert_post_data' passing $data, $postarr prior to database update or insert.
- * @uses wp_transition_post_status()
  *
- * @param array $postarr Elements that make up post to insert.
- * @param bool $wp_error Optional. Allow return of WP_Error on failure.
- * @return int|WP_Error The value 0 or WP_Error on failure. The post ID on success.
+ * @param array $postarr {
+ *     An array of elements that make up a post to update or insert.
+ *
+ *     @type int    'ID'                    The post ID. If equal to something other than 0, the post with that ID will
+ *                                          be updated. Default 0.
+ *     @type string 'post_status'           The post status. Default 'draft'.
+ *     @type string 'post_type'             The post type. Default 'post'.
+ *     @type int    'post_author'           The ID of the user who added the post. Default the current user ID.
+ *     @type bool   'ping_status'           Whether the post can accept pings. Default value of 'default_ping_status' option.
+ *     @type int    'post_parent'           Set this for the post it belongs to, if any. Default 0.
+ *     @type int    'menu_order'            The order it is displayed. Default 0.
+ *     @type string 'to_ping'               Space or carriage return-separated list of URLs to ping. Default empty string.
+ *     @type string 'pinged'                Space or carriage return-separated list of URLs that have been pinged.
+ *                                          Default empty string.
+ *     @type string 'post_password          The password to access the post. Default empty string.
+ *     @type string 'guid'                  Global Unique ID for referencing the post.
+ *     @type string 'post_content_filtered' The filtered post content. Default empty string.
+ *     @type string 'post_excerpt'          The post excerpt. Default empty string.
+ * }
+ * @param bool  $wp_error Optional. Allow return of WP_Error on failure.
+ * @return int|WP_Error The post ID on success. The value 0 or WP_Error on failure.
  */
-function wp_insert_post($postarr, $wp_error = false) {
-	global $wpdb, $user_ID;
+function wp_insert_post( $postarr, $wp_error = false ) {
+	global $wpdb;
 
-	$defaults = array('post_status' => 'draft', 'post_type' => 'post', 'post_author' => $user_ID,
+	$user_id = get_current_user_id();
+
+	$defaults = array('post_status' => 'draft', 'post_type' => 'post', 'post_author' => $user_id,
 		'ping_status' => get_option('default_ping_status'), 'post_parent' => 0,
 		'menu_order' => 0, 'to_ping' =>  '', 'pinged' => '', 'post_password' => '',
 		'guid' => '', 'post_content_filtered' => '', 'post_excerpt' => '', 'import_id' => 0,
@@ -2747,7 +2764,7 @@ function wp_insert_post($postarr, $wp_error = false) {
 	}
 
 	if ( empty($post_author) )
-		$post_author = $user_ID;
+		$post_author = $user_id;
 
 	// Don't allow contributors to set the post slug for pending review posts
 	if ( 'pending' == $post_status && !current_user_can( 'publish_posts' ) )
@@ -3689,7 +3706,7 @@ function get_pages( $args = array() ) {
 	if ( !in_array( $post_type, $hierarchical_post_types ) )
 		return $pages;
 
-	if ( $parent && ! $child_of )
+	if ( $parent > 0 && ! $child_of )
 		$hierarchical = false;
 
 	// Make sure we have a valid post status
@@ -3941,7 +3958,6 @@ function is_local_attachment($url) {
  *
  * @since 2.0.0
  * @uses $wpdb
- * @uses $user_ID
  * @uses do_action() Calls 'edit_attachment' on $post_ID if this is an update.
  * @uses do_action() Calls 'add_attachment' on $post_ID if this is not an update.
  *
@@ -3951,11 +3967,13 @@ function is_local_attachment($url) {
  * @return int Attachment ID.
  */
 function wp_insert_attachment($object, $file = false, $parent = 0) {
-	global $wpdb, $user_ID;
+	global $wpdb;
 
-	$defaults = array('post_status' => 'inherit', 'post_type' => 'post', 'post_author' => $user_ID,
+	$user_id = get_current_user_id();
+
+	$defaults = array('post_status' => 'inherit', 'post_type' => 'post', 'post_author' => $user_id,
 		'ping_status' => get_option('default_ping_status'), 'post_parent' => 0, 'post_title' => '',
-		'menu_order' => 0, 'to_ping' =>  '', 'pinged' => '', 'post_password' => '',
+		'menu_order' => 0, 'to_ping' =>  '', 'pinged' => '', 'post_password' => '', 'post_content' => '',
 		'guid' => '', 'post_content_filtered' => '', 'post_excerpt' => '', 'import_id' => 0, 'context' => '');
 
 	$object = wp_parse_args($object, $defaults);
@@ -3970,7 +3988,7 @@ function wp_insert_attachment($object, $file = false, $parent = 0) {
 	extract($object, EXTR_SKIP);
 
 	if ( empty($post_author) )
-		$post_author = $user_ID;
+		$post_author = $user_id;
 
 	$post_type = 'attachment';
 
@@ -4172,6 +4190,7 @@ function wp_delete_attachment( $post_id, $force_delete = false ) {
 		// Don't delete the thumb if another attachment uses it
 		if (! $wpdb->get_row( $wpdb->prepare( "SELECT meta_id FROM $wpdb->postmeta WHERE meta_key = '_wp_attachment_metadata' AND meta_value LIKE %s AND post_id <> %d", '%' . $meta['thumb'] . '%', $post_id)) ) {
 			$thumbfile = str_replace(basename($file), $meta['thumb'], $file);
+			/** This filter is documented in wp-admin/custom-header.php */
 			$thumbfile = apply_filters('wp_delete_file', $thumbfile);
 			@ unlink( path_join($uploadpath['basedir'], $thumbfile) );
 		}
@@ -4179,6 +4198,7 @@ function wp_delete_attachment( $post_id, $force_delete = false ) {
 
 	// remove intermediate and backup images if there are any
 	foreach ( $intermediate_sizes as $intermediate ) {
+		/** This filter is documented in wp-admin/custom-header.php */
 		$intermediate_file = apply_filters( 'wp_delete_file', $intermediate['path'] );
 		@ unlink( path_join($uploadpath['basedir'], $intermediate_file) );
 	}
@@ -4186,11 +4206,13 @@ function wp_delete_attachment( $post_id, $force_delete = false ) {
 	if ( is_array($backup_sizes) ) {
 		foreach ( $backup_sizes as $size ) {
 			$del_file = path_join( dirname($meta['file']), $size['file'] );
+			/** This filter is documented in wp-admin/custom-header.php */
 			$del_file = apply_filters('wp_delete_file', $del_file);
 			@ unlink( path_join($uploadpath['basedir'], $del_file) );
 		}
 	}
 
+	/** This filter is documented in wp-admin/custom-header.php */
 	$file = apply_filters('wp_delete_file', $file);
 
 	if ( ! empty($file) )
@@ -4494,8 +4516,6 @@ function wp_check_for_changed_slugs($post_id, $post, $post_before) {
  *
  * @since 2.2.0
  *
- * @uses $user_ID
- *
  * @param string $post_type currently only supports 'post' or 'page'.
  * @return string SQL code that can be added to a where clause.
  */
@@ -4516,7 +4536,7 @@ function get_private_posts_cap_sql( $post_type ) {
  * @return string SQL WHERE code that can be added to a query.
  */
 function get_posts_by_author_sql( $post_type, $full = true, $post_author = null, $public_only = false ) {
-	global $user_ID, $wpdb;
+	global $wpdb;
 
 	// Private posts
 	$post_type_obj = get_post_type_object( $post_type );
@@ -4546,7 +4566,7 @@ function get_posts_by_author_sql( $post_type, $full = true, $post_author = null,
 			$sql .= " OR post_status = 'private'";
 		} elseif ( is_user_logged_in() ) {
 			// Users can view their own private posts.
-			$id = (int) $user_ID;
+			$id = get_current_user_id();
 			if ( null === $post_author || ! $full ) {
 				$sql .= " OR post_status = 'private' AND post_author = $id";
 			} elseif ( $id == (int) $post_author ) {

@@ -9,29 +9,42 @@
  */
 class Walker_Nav_Menu_Edit extends Walker_Nav_Menu {
 	/**
+	 * Starts the list before the elements are added.
+	 *
 	 * @see Walker_Nav_Menu::start_lvl()
+	 *
 	 * @since 3.0.0
 	 *
 	 * @param string $output Passed by reference.
+	 * @param int    $depth  Depth of menu item. Used for padding.
+	 * @param array  $args   Not used.
 	 */
 	function start_lvl( &$output, $depth = 0, $args = array() ) {}
 
 	/**
+	 * Ends the list of after the elements are added.
+	 *
 	 * @see Walker_Nav_Menu::end_lvl()
+	 *
 	 * @since 3.0.0
 	 *
 	 * @param string $output Passed by reference.
+	 * @param int    $depth  Depth of menu item. Used for padding.
+	 * @param array  $args   Not used.
 	 */
 	function end_lvl( &$output, $depth = 0, $args = array() ) {}
 
 	/**
-	 * @see Walker::start_el()
+	 * Start the element output.
+	 *
+	 * @see Walker_Nav_Menu::start_el()
 	 * @since 3.0.0
 	 *
 	 * @param string $output Passed by reference. Used to append additional content.
-	 * @param object $item Menu item data object.
-	 * @param int $depth Depth of menu item. Used for padding.
-	 * @param object $args
+	 * @param object $item   Menu item data object.
+	 * @param int    $depth  Depth of menu item. Used for padding.
+	 * @param array  $args   Not used.
+	 * @param int    $id     Not used.
 	 */
 	function start_el( &$output, $item, $depth = 0, $args = array(), $id = 0 ) {
 		global $_wp_nav_menu_max_depth;
@@ -212,7 +225,8 @@ class Walker_Nav_Menu_Edit extends Walker_Nav_Menu {
 		<?php
 		$output .= ob_get_clean();
 	}
-}
+
+} // Walker_Nav_Menu_Edit
 
 /**
  * Create HTML list of nav menu input items.
@@ -228,24 +242,50 @@ class Walker_Nav_Menu_Checklist extends Walker_Nav_Menu {
 		}
 	}
 
+	/**
+	 * Starts the list before the elements are added.
+	 *
+	 * @see Walker_Nav_Menu::start_lvl()
+	 *
+	 * @since 3.0.0
+	 *
+	 * @param string $output Passed by reference. Used to append additional content.
+	 * @param int    $depth  Depth of page. Used for padding.
+	 * @param array  $args   Not used.
+	 */
 	function start_lvl( &$output, $depth = 0, $args = array() ) {
 		$indent = str_repeat( "\t", $depth );
 		$output .= "\n$indent<ul class='children'>\n";
 	}
 
+	/**
+	 * Ends the list of after the elements are added.
+	 *
+	 * @see Walker_Nav_Menu::end_lvl()
+	 *
+	 * @since 3.0.0
+	 *
+	 * @param string $output Passed by reference. Used to append additional content.
+	 * @param int    $depth  Depth of page. Used for padding.
+	 * @param array  $args   Not used.
+	 */
 	function end_lvl( &$output, $depth = 0, $args = array() ) {
 		$indent = str_repeat( "\t", $depth );
 		$output .= "\n$indent</ul>";
 	}
 
 	/**
-	 * @see Walker::start_el()
+	 * Start the element output.
+	 *
+	 * @see Walker_Nav_Menu::start_el()
+	 *
 	 * @since 3.0.0
 	 *
 	 * @param string $output Passed by reference. Used to append additional content.
-	 * @param object $item Menu item data object.
-	 * @param int $depth Depth of menu item. Used for padding.
-	 * @param object $args
+	 * @param object $item   Menu item data object.
+	 * @param int    $depth  Depth of menu item. Used for padding.
+	 * @param array  $args   Not used.
+	 * @param int    $id     Not used.
 	 */
 	function start_el( &$output, $item, $depth = 0, $args = array(), $id = 0 ) {
 		global $_nav_menu_placeholder;
@@ -259,17 +299,22 @@ class Walker_Nav_Menu_Checklist extends Walker_Nav_Menu {
 		$output .= $indent . '<li>';
 		$output .= '<label class="menu-item-title">';
 		$output .= '<input type="checkbox" class="menu-item-checkbox';
-		if ( property_exists( $item, 'front_or_home' ) && $item->front_or_home ) {
-			$title = sprintf( _x( 'Home: %s', 'nav menu front page title' ), get_the_title( $item->ID ) );
+
+		if ( ! empty( $item->front_or_home ) )
 			$output .= ' add-to-top';
-		} elseif ( property_exists( $item, 'label' ) ) {
-			$title = $item->label;
-		}
+
 		$output .= '" name="menu-item[' . $possible_object_id . '][menu-item-object-id]" value="'. esc_attr( $item->object_id ) .'" /> ';
-		if ( isset( $item->post_type ) )
-			$output .= empty( $item->label ) ? esc_html( get_the_title( $item->ID ) ) : esc_html( $item->label );
-		else
-			$output .= isset( $title ) ? esc_html( $title ) : esc_html( $item->title );
+
+		if ( ! empty( $item->label ) ) {
+			$title = $item->label;
+		} elseif ( isset( $item->post_type ) ) {
+			/** This filter is documented in wp-includes/post-template.php */
+			$title = apply_filters( 'the_title', $item->post_title, $item->ID );
+			if ( ! empty( $item->front_or_home ) && _x( 'Home', 'nav menu home label' ) !== $title )
+				$title = sprintf( _x( 'Home: %s', 'nav menu front page title' ), $title );
+		}
+
+		$output .= isset( $title ) ? esc_html( $title ) : esc_html( $item->title );
  		$output .= '</label>';
 
 		// Menu item hidden fields
@@ -284,7 +329,8 @@ class Walker_Nav_Menu_Checklist extends Walker_Nav_Menu {
 		$output .= '<input type="hidden" class="menu-item-classes" name="menu-item[' . $possible_object_id . '][menu-item-classes]" value="'. esc_attr( implode( ' ', $item->classes ) ) .'" />';
 		$output .= '<input type="hidden" class="menu-item-xfn" name="menu-item[' . $possible_object_id . '][menu-item-xfn]" value="'. esc_attr( $item->xfn ) .'" />';
 	}
-}
+
+} // Walker_Nav_Menu_Checklist
 
 /**
  * Prints the appropriate response to a menu quick search.

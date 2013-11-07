@@ -289,6 +289,8 @@ function is_taxonomy_hierarchical($taxonomy) {
  *     * If not set, the default is inherited from public.
  * - show_tagcloud - Whether to list the taxonomy in the Tag Cloud Widget.
  *     * If not set, the default is inherited from show_ui.
+ * - meta_box_cb - Provide a callback function for the meta box display. Defaults to
+ *     post_categories_meta_box for hierarchical taxonomies and post_tags_meta_box for non-hierarchical.
  * - capabilities - Array of capabilities for this taxonomy.
  *     * You can see accepted values in this function.
  * - rewrite - Triggers the handling of rewrites for this taxonomy. Defaults to true, using $taxonomy as slug.
@@ -332,6 +334,7 @@ function register_taxonomy( $taxonomy, $object_type, $args = array() ) {
 		'show_in_menu'          => null,
 		'show_in_nav_menus'     => null,
 		'show_tagcloud'         => null,
+		'meta_box_cb'           => null,
 		'capabilities'          => array(),
 		'rewrite'               => true,
 		'query_var'             => $taxonomy,
@@ -400,6 +403,14 @@ function register_taxonomy( $taxonomy, $object_type, $args = array() ) {
 
 	$args['labels'] = get_taxonomy_labels( (object) $args );
 	$args['label'] = $args['labels']->name;
+
+	// If not set, use the default meta box
+	if ( null === $args['meta_box_cb'] ) {
+		if ( $args['hierarchical'] )
+			$args['meta_box_cb'] = 'post_categories_meta_box';
+		else
+			$args['meta_box_cb'] = 'post_tags_meta_box';
+	}
 
 	$wp_taxonomies[ $taxonomy ] = (object) $args;
 
@@ -493,6 +504,32 @@ function register_taxonomy_for_object_type( $taxonomy, $object_type) {
 	if ( ! in_array( $object_type, $wp_taxonomies[$taxonomy]->object_type ) )
 		$wp_taxonomies[$taxonomy]->object_type[] = $object_type;
 
+	return true;
+}
+
+/**
+ * Remove an already registered taxonomy from an object type.
+ *
+ * @since 3.7.0
+ *
+ * @param string $taxonomy    Name of taxonomy object.
+ * @param string $object_type Name of the object type.
+ * @return bool True if successful, false if not.
+ */
+function unregister_taxonomy_for_object_type( $taxonomy, $object_type ) {
+	global $wp_taxonomies;
+
+	if ( ! isset( $wp_taxonomies[ $taxonomy ] ) )
+		return false;
+
+	if ( ! get_post_type_object( $object_type ) )
+		return false;
+
+	$key = array_search( $object_type, $wp_taxonomies[ $taxonomy ]->object_type, true );
+	if ( false === $key )
+		return false;
+
+	unset( $wp_taxonomies[ $taxonomy ]->object_type[ $key ] );
 	return true;
 }
 
@@ -1325,7 +1362,7 @@ function get_terms($taxonomies, $args = '') {
 	$exclusions = '';
 	if ( ! empty( $exclude_tree ) ) {
 		$exclude_tree = wp_parse_id_list( $exclude_tree );
-		$excluded_children = array();
+		$excluded_children = $exclude_tree;
 		foreach ( $exclude_tree as $extrunk ) {
 			$excluded_children = array_merge(
 				$excluded_children,
@@ -1346,7 +1383,7 @@ function get_terms($taxonomies, $args = '') {
 	if ( ! empty( $exclusions ) )
 		$exclusions = ' AND t.term_id NOT IN (' . $exclusions . ')';
 
-	$exclusions = apply_filters( 'list_terms_exclusions', $exclusions, $args );
+	$exclusions = apply_filters( 'list_terms_exclusions', $exclusions, $args, $taxonomies );
 
 	if ( ! empty( $exclusions ) )
 		$where .= $exclusions;
@@ -1419,7 +1456,7 @@ function get_terms($taxonomies, $args = '') {
 
 	$_fields = $fields;
 
-	$fields = implode(', ', apply_filters( 'get_terms_fields', $selects, $args ));
+	$fields = implode( ', ', apply_filters( 'get_terms_fields', $selects, $args, $taxonomies ) );
 
 	$join = "INNER JOIN $wpdb->term_taxonomy AS tt ON t.term_id = tt.term_id";
 

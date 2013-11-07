@@ -1102,6 +1102,9 @@ function insert_blog($domain, $path, $site_id) {
 
 	$blog_id = $wpdb->insert_id;
 	refresh_blog_details( $blog_id );
+
+	wp_maybe_update_network_site_counts();
+
 	return $blog_id;
 }
 
@@ -1876,10 +1879,83 @@ function wp_schedule_update_network_counts() {
  *  @since 3.1.0
  */
 function wp_update_network_counts() {
+	wp_update_network_user_counts();
+	wp_update_network_site_counts();
+}
+
+/**
+ * Update the count of sites for the current network.
+ *
+ * If enabled through the 'enable_live_network_counts' filter, update the sites count
+ * on a network when a site is created or its status is updated.
+ *
+ * @since 3.7.0
+ *
+ * @uses wp_update_network_site_counts()
+ */
+function wp_maybe_update_network_site_counts() {
+	$is_small_network = ! wp_is_large_network( 'sites' );
+
+	/**
+	 * Filter the decision to update network user and site counts in real time.
+	 *
+	 * @since 3.7.0
+	 *
+	 * @param bool   $small_network Based on wp_is_large_network( $context ).
+	 * @param string $context       Context. Either 'users' or 'sites'.
+	 */
+	if ( ! apply_filters( 'enable_live_network_counts', $is_small_network, 'sites' ) )
+		return;
+
+	wp_update_network_site_counts();
+}
+
+/**
+ * Update the network-wide users count.
+ *
+ * If enabled through the 'enable_live_network_counts' filter, update the users count
+ * on a network when a user is created or its status is updated.
+ *
+ * @since 3.7.0
+ *
+ * @uses wp_update_network_user_counts()
+ */
+function wp_maybe_update_network_user_counts() {
+	$is_small_network = ! wp_is_large_network( 'users' );
+
+	/**
+	 * Filter the decision to update network user and site counts in real time.
+	 *
+	 * @since 3.7.0
+	 *
+	 * @param bool   $small_network Based on wp_is_large_network( $context ).
+	 * @param string $context       Context. Either 'users' or 'sites'.
+	 */
+	if ( ! apply_filters( 'enable_live_network_counts', $is_small_network, 'users' ) )
+		return;
+
+	wp_update_network_user_counts();
+}
+
+/**
+ * Update the network-wide site count.
+ *
+ * @since 3.7.0
+ */
+function wp_update_network_site_counts() {
 	global $wpdb;
 
 	$count = $wpdb->get_var( $wpdb->prepare("SELECT COUNT(blog_id) as c FROM $wpdb->blogs WHERE site_id = %d AND spam = '0' AND deleted = '0' and archived = '0'", $wpdb->siteid) );
 	update_site_option( 'blog_count', $count );
+}
+
+/**
+ * Update the network-wide user count.
+ *
+ * @since 3.7.0
+ */
+function wp_update_network_user_counts() {
+	global $wpdb;
 
 	$count = $wpdb->get_var( "SELECT COUNT(ID) as c FROM $wpdb->users WHERE spam = '0' AND deleted = '0'" );
 	update_site_option( 'user_count', $count );
@@ -1990,27 +2066,27 @@ function wp_is_large_network( $using = 'sites' ) {
 
 
 /**
- * Return an array of sites for a network.
- *
- * @see wp_is_large_network() Returns an empty array if the install is considered large.
+ * Return an array of sites for a network or networks.
  *
  * @since 3.7.0
  *
  * @param array $args {
- *     Array of arguments. Optional.
+ *     Array of default arguments. Optional.
  *
- *     @type int|array 'network_id' A network ID or array of network IDs. Set to null to retrieve sites
- *                                  from all networks. Defaults to current network ID.
- *     @type int       'public'     Retrieve public or non-public sites. Default null, for any.
- *     @type int       'archived'   Retrieve archived or non-archived sites. Default null, for any.
- *     @type int       'mature'     Retrieve mature or non-mature sites. Default null, for any.
- *     @type int       'spam'       Retrieve spam or non-spam sites. Default null, for any.
- *     @type int       'deleted'    Retrieve deleted or non-deleted sites. Default null, for any.
- *     @type int       'limit'      Number of sites to limit the query to. Default 100.
- *     @type int       'offset'     Exclude the first x sites. Used in combination with the limit parameter. Default 0.
+ *     @type int|array $network_id A network ID or array of network IDs. Set to null to retrieve sites
+ *                                 from all networks. Defaults to current network ID.
+ *     @type int       $public     Retrieve public or non-public sites. Default null, for any.
+ *     @type int       $archived   Retrieve archived or non-archived sites. Default null, for any.
+ *     @type int       $mature     Retrieve mature or non-mature sites. Default null, for any.
+ *     @type int       $spam       Retrieve spam or non-spam sites. Default null, for any.
+ *     @type int       $deleted    Retrieve deleted or non-deleted sites. Default null, for any.
+ *     @type int       $limit      Number of sites to limit the query to. Default 100.
+ *     @type int       $offset     Exclude the first x sites. Used in combination with the $limit parameter. Default 0.
  * }
- *
- * @return array An array of site data
+ * @return array An empty array if the install is considered "large" via wp_is_large_network(). Otherwise,
+ *               an associative array of site data arrays, each containing the site (network) ID, blog ID,
+ *               site domain and path, dates registered and modified, and the language ID. Also, boolean
+ *               values for whether the site is public, archived, mature, spam, and/or deleted.
  */
 function wp_get_sites( $args = array() ) {
 	global $wpdb;
@@ -2042,7 +2118,7 @@ function wp_get_sites( $args = array() ) {
 		$query .= $wpdb->prepare( "AND public = %d ", $args['public'] );
 
 	if ( isset( $args['archived'] ) )
-		$query .= $wpdb->prepare( "AND archived = %s ", (int) $args['archived'] ); // ENUM field
+		$query .= $wpdb->prepare( "AND archived = %d ", $args['archived'] );
 
 	if ( isset( $args['mature'] ) )
 		$query .= $wpdb->prepare( "AND mature = %d ", $args['mature'] );

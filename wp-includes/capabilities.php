@@ -95,7 +95,7 @@ class WP_Roles {
 	 */
 	function _init () {
 		global $wpdb, $wp_user_roles;
-		$this->role_key = $wpdb->prefix . 'user_roles';
+		$this->role_key = $wpdb->get_blog_prefix() . 'user_roles';
 		if ( ! empty( $wp_user_roles ) ) {
 			$this->roles = $wp_user_roles;
 			$this->use_db = false;
@@ -131,7 +131,7 @@ class WP_Roles {
 		global $wpdb, $wp_user_roles;
 
 		// Duplicated from _init() to avoid an extra function call.
-		$this->role_key = $wpdb->prefix . 'user_roles';
+		$this->role_key = $wpdb->get_blog_prefix() . 'user_roles';
 		$this->roles = get_option( $this->role_key );
 		if ( empty( $this->roles ) )
 			return;
@@ -193,6 +193,9 @@ class WP_Roles {
 
 		if ( $this->use_db )
 			update_option( $this->role_key, $this->roles );
+
+		if ( get_option( 'default_role' ) == $role )
+			update_option( 'default_role', 'subscriber' );
 	}
 
 	/**
@@ -709,7 +712,7 @@ class WP_User {
 		global $wpdb;
 
 		if ( empty($cap_key) )
-			$this->cap_key = $wpdb->prefix . 'capabilities';
+			$this->cap_key = $wpdb->get_blog_prefix() . 'capabilities';
 		else
 			$this->cap_key = $cap_key;
 
@@ -732,6 +735,8 @@ class WP_User {
 	 * @since 2.0.0
 	 * @uses $wp_roles
 	 * @access public
+	 *
+	 * @return array List of all capabilities for the user.
 	 */
 	function get_role_caps() {
 		global $wp_roles;
@@ -750,6 +755,8 @@ class WP_User {
 			$this->allcaps = array_merge( (array) $this->allcaps, (array) $the_role->capabilities );
 		}
 		$this->allcaps = array_merge( (array) $this->allcaps, (array) $this->caps );
+
+		return $this->allcaps;
 	}
 
 	/**
@@ -859,7 +866,7 @@ class WP_User {
 	function update_user_level_from_caps() {
 		global $wpdb;
 		$this->user_level = array_reduce( array_keys( $this->allcaps ), array( $this, 'level_reduction' ), 0 );
-		update_user_meta( $this->ID, $wpdb->prefix . 'user_level', $this->user_level );
+		update_user_meta( $this->ID, $wpdb->get_blog_prefix() . 'user_level', $this->user_level );
 	}
 
 	/**
@@ -901,7 +908,7 @@ class WP_User {
 		global $wpdb;
 		$this->caps = array();
 		delete_user_meta( $this->ID, $this->cap_key );
-		delete_user_meta( $this->ID, $wpdb->prefix . 'user_level' );
+		delete_user_meta( $this->ID, $wpdb->get_blog_prefix() . 'user_level' );
 		$this->get_role_caps();
 	}
 
@@ -1407,7 +1414,6 @@ function add_role( $role, $display_name, $capabilities = array() ) {
  * @since 2.0.0
  *
  * @param string $role Role name.
- * @return null
  */
 function remove_role( $role ) {
 	global $wp_roles;
@@ -1415,7 +1421,7 @@ function remove_role( $role ) {
 	if ( ! isset( $wp_roles ) )
 		$wp_roles = new WP_Roles();
 
-	return $wp_roles->remove_role( $role );
+	$wp_roles->remove_role( $role );
 }
 
 /**

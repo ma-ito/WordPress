@@ -284,8 +284,9 @@ function wp_constrain_dimensions( $current_width, $current_height, $max_width=0,
 		// The larger ratio fits, and is likely to be a more "snug" fit.
 		$ratio = $larger_ratio;
 
-	$w = intval( $current_width  * $ratio );
-	$h = intval( $current_height * $ratio );
+	// Very small dimensions may result in 0, 1 should be the minimum.
+	$w = max ( 1, intval( $current_width  * $ratio ) );
+	$h = max ( 1, intval( $current_height * $ratio ) );
 
 	// Sometimes, due to rounding, we'll end up with a result like this: 465x700 in a 177x177 box is 117x176... a pixel short
 	// We also have issues with recursive calls resulting in an ever-changing result. Constraining to the result of a constraint should yield the original result.
@@ -733,7 +734,8 @@ function gallery_shortcode($attr) {
 		'columns'    => 3,
 		'size'       => 'thumbnail',
 		'include'    => '',
-		'exclude'    => ''
+		'exclude'    => '',
+		'link'       => ''
 	), $attr, 'gallery'));
 
 	$id = intval($id);
@@ -807,9 +809,9 @@ function gallery_shortcode($attr) {
 
 	$i = 0;
 	foreach ( $attachments as $id => $attachment ) {
-		if ( ! empty( $attr['link'] ) && 'file' === $attr['link'] )
+		if ( ! empty( $link ) && 'file' === $link )
 			$image_output = wp_get_attachment_link( $id, $size, false, false );
-		elseif ( ! empty( $attr['link'] ) && 'none' === $attr['link'] )
+		elseif ( ! empty( $link ) && 'none' === $link )
 			$image_output = wp_get_attachment_image( $id, $size, false );
 		else
 			$image_output = wp_get_attachment_link( $id, $size, true, false );
@@ -1742,6 +1744,7 @@ function wp_prepare_attachment_for_js( $attachment ) {
 
 	if ( $meta && 'image' === $type ) {
 		$sizes = array();
+		/** This filter is documented in wp-admin/includes/media.php */
 		$possible_sizes = apply_filters( 'image_size_names_choose', array(
 			'thumbnail' => __('Thumbnail'),
 			'medium'    => __('Medium'),

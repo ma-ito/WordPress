@@ -353,7 +353,7 @@ function retrieve_password() {
 
 	$message = sprintf(__('%sさんのパスワードリセット要求を受付けました。'), $display_name) . "\r\n\r\n";
 	$message .= __('To reset your password, visit the following address:') . "\r\n";
-	$message .= network_site_url("wp-login-default.php?actioneve_password_message=rp&key=$key&login=" . rawurlencode($user_login), 'login') . "\r\n";
+	$message .= network_site_url("wp-login-default.php?action=rp&key=$key&login=" . rawurlencode($user_login), 'login') . "\r\n";
 
 	if ( is_multisite() )
 		$blogname = $GLOBALS['current_site']->site_name;

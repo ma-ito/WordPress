@@ -229,6 +229,7 @@ function wpautop($pee, $br = true) {
 		$pee = preg_replace('|\s*</embed>\s*|', '</embed>', $pee);
 	}
 	$pee = preg_replace("/\n\n+/", "\n\n", $pee); // take care of duplicates
+	$pee = preg_replace("/\n\n<a href/", "\n<a href", $pee); // remove a newline above hyperlink
 	// make paragraphs, including one at the end
 	$pees = preg_split('/\n\s*\n/', $pee, -1, PREG_SPLIT_NO_EMPTY);
 	$pee = '';
@@ -250,6 +251,7 @@ function wpautop($pee, $br = true) {
 	$pee = preg_replace('!(</?' . $allblocks . '[^>]*>)\s*<br />!', "$1", $pee);
 	$pee = preg_replace('!<br />(\s*</?(?:p|li|div|dl|dd|dt|th|pre|td|ul|ol)[^>]*>)!', '$1', $pee);
 	$pee = preg_replace( "|\n</p>$|", '</p>', $pee );
+	$pee = str_replace( '<code><br />', '<code>', $pee );
 
 	if ( !empty($pre_tags) )
 		$pee = str_replace(array_keys($pre_tags), array_values($pre_tags), $pee);

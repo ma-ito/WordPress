@@ -243,8 +243,6 @@ function wpautop($pee, $br = true) {
 		$pee = preg_replace('|\s*</embed>\s*|', '</embed>', $pee);
 	}
 	$pee = preg_replace("/\n\n+/", "\n\n", $pee); // take care of duplicates
-	// for BuddyPress(ma-ito)
-	$pee = preg_replace("/\n\n<a href/", "\n<a href", $pee); // remove a newline above hyperlink
 	// make paragraphs, including one at the end
 	$pees = preg_split('/\n\s*\n/', $pee, -1, PREG_SPLIT_NO_EMPTY);
 	$pee = '';

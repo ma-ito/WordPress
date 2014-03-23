@@ -295,7 +295,6 @@ function retrieve_password() {
 	// redefining user_login ensures we return the right case in the email
 	$user_login = $user_data->user_login;
 	$user_email = $user_data->user_email;
-	$display_name = $user_data->display_name;
 
 	/**
 	 * Fires before a new password is retrieved.
@@ -351,9 +350,12 @@ function retrieve_password() {
 	$hashed = $wp_hasher->HashPassword( $key );
 	$wpdb->update( $wpdb->users, array( 'user_activation_key' => $hashed ), array( 'user_login' => $user_login ) );
 
-	$message = sprintf(__('%sさんのパスワードリセット要求を受付けました。'), $display_name) . "\r\n\r\n";
-	$message .= __('To reset your password, visit the following address:') . "\r\n";
-	$message .= network_site_url("wp-login-default.php?action=rp&key=$key&login=" . rawurlencode($user_login), 'login') . "\r\n";
+	$message = __('Someone requested that the password be reset for the following account:') . "\r\n\r\n";
+	$message .= network_home_url( '/' ) . "\r\n\r\n";
+	$message .= sprintf(__('Username: %s'), $user_login) . "\r\n\r\n";
+	$message .= __('If this was a mistake, just ignore this email and nothing will happen.') . "\r\n\r\n";
+	$message .= __('To reset your password, visit the following address:') . "\r\n\r\n";
+	$message .= '<' . network_site_url("wp-login.php?action=rp&key=$key&login=" . rawurlencode($user_login), 'login') . ">\r\n";
 
 	if ( is_multisite() )
 		$blogname = $GLOBALS['current_site']->site_name;
@@ -382,9 +384,7 @@ function retrieve_password() {
 	 */
 	$message = apply_filters( 'retrieve_password_message', $message, $key );
 
-	$header = apply_filters( 'cc_append_cc_email_address', $user_data->ID );
-
-	if ( $message && !wp_mail($user_email, $title, $message, $header) )
+	if ( $message && !wp_mail($user_email, $title, $message) )
 		wp_die( __('The e-mail could not be sent.') . "<br />\n" . __('Possible reason: your host may have disabled the mail() function.') );
 
 	return true;
@@ -482,7 +482,7 @@ case 'retrievepassword' :
 	if ( $http_post ) {
 		$errors = retrieve_password();
 		if ( !is_wp_error($errors) ) {
-			$redirect_to = !empty( $_REQUEST['redirect_to'] ) ? $_REQUEST['redirect_to'] : 'wp-login-default.php?checkemail=confirm';
+			$redirect_to = !empty( $_REQUEST['redirect_to'] ) ? $_REQUEST['redirect_to'] : 'wp-login.php?checkemail=confirm';
 			wp_safe_redirect( $redirect_to );
 			exit();
 		}
@@ -518,7 +518,7 @@ case 'retrievepassword' :
 
 ?>
 
-<form name="lostpasswordform" id="lostpasswordform" action="<?php echo esc_url( site_url( 'wp-login-default.php?action=lostpassword', 'login_post' ) ); ?>" method="post">
+<form name="lostpasswordform" id="lostpasswordform" action="<?php echo esc_url( site_url( 'wp-login.php?action=lostpassword', 'login_post' ) ); ?>" method="post">
 	<p>
 		<label for="user_login" ><?php _e('Username or E-mail:') ?><br />
 		<input type="text" name="user_login" id="user_login" class="input" value="<?php echo esc_attr($user_login); ?>" size="20" /></label>
@@ -595,7 +595,7 @@ case 'rp' :
 	login_header(__('Reset Password'), '<p class="message reset-pass">' . __('Enter your new password below.') . '</p>', $errors );
 
 ?>
-<form name="resetpassform" id="resetpassform" action="<?php echo esc_url( site_url( 'wp-login-default.php?action=resetpass&key=' . urlencode( $_GET['key'] ) . '&login=' . urlencode( $_GET['login'] ), 'login_post' ) ); ?>" method="post" autocomplete="off">
+<form name="resetpassform" id="resetpassform" action="<?php echo esc_url( site_url( 'wp-login.php?action=resetpass&key=' . urlencode( $_GET['key'] ) . '&login=' . urlencode( $_GET['login'] ), 'login_post' ) ); ?>" method="post" autocomplete="off">
 	<input type="hidden" id="user_login" value="<?php echo esc_attr( $_GET['login'] ); ?>" autocomplete="off" />
 
 	<p>

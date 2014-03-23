@@ -147,6 +147,19 @@ a:hover {
 	outline: none;
 	z-index: 1;
 }
+#change-skin {
+	display: block;
+	position: relative;
+	left: 737px;
+	top: 410px;
+	width: 170px;
+	font-size: 9pt;
+	text-align: center;
+	z-index: 1;
+}
+#change-skin a {
+	color: #fff;
+}
 
 #footer {
 	position: absolute;

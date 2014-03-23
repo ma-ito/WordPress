@@ -209,7 +209,16 @@ function login_footer($input_id = '') {
 
 	// Don't allow interim logins to navigate away from the page.
 	if ( ! $interim_login ): ?>
+	<?php
+	$action = isset($_REQUEST['action']) ? $_REQUEST['action'] : 'login';
+	if ( 'changeskin' == $action || 'login' == $action ) : ?>
+	<?php if ( isset($_GET['checkemail']) && 'confirm' == $_GET['checkemail'] ) :?>
 	<p id="backtoblog"><a href="<?php echo esc_url( home_url( '/' ) ); ?>" title="<?php esc_attr_e( 'Are you lost?' ); ?>"><?php printf( __( '&larr; Back to %s' ), get_bloginfo( 'title', 'display' ) ); ?></a></p>
+	<?php endif; ?>
+	<p id="backtoblog"><a href="<?php echo network_home_url() . '/wp-login.php?action=changeskin'; if ( !empty( $_REQUEST['redirect_to'] ) ) echo '&redirect_to=' . urlencode( $_REQUEST['redirect_to'] ); ?>">ログインスキンを変更する</a></p>
+	<?php else : ?>
+	<p id="backtoblog"><a href="<?php echo esc_url( home_url( '/' ) ); ?>" title="<?php esc_attr_e( 'Are you lost?' ); ?>"><?php printf( __( '&larr; Back to %s' ), get_bloginfo( 'title', 'display' ) ); ?></a></p>
+	<?php endif; ?>
 	<?php endif; ?>
 
 	</div>
@@ -295,6 +304,7 @@ function retrieve_password() {
 	// redefining user_login ensures we return the right case in the email
 	$user_login = $user_data->user_login;
 	$user_email = $user_data->user_email;
+	$display_name = $user_data->display_name;
 
 	/**
 	 * Fires before a new password is retrieved.
@@ -350,12 +360,9 @@ function retrieve_password() {
 	$hashed = $wp_hasher->HashPassword( $key );
 	$wpdb->update( $wpdb->users, array( 'user_activation_key' => $hashed ), array( 'user_login' => $user_login ) );
 
-	$message = __('Someone requested that the password be reset for the following account:') . "\r\n\r\n";
-	$message .= network_home_url( '/' ) . "\r\n\r\n";
-	$message .= sprintf(__('Username: %s'), $user_login) . "\r\n\r\n";
-	$message .= __('If this was a mistake, just ignore this email and nothing will happen.') . "\r\n\r\n";
-	$message .= __('To reset your password, visit the following address:') . "\r\n\r\n";
-	$message .= '<' . network_site_url("wp-login.php?action=rp&key=$key&login=" . rawurlencode($user_login), 'login') . ">\r\n";
+	$message = sprintf(__('%sさんのパスワードリセット要求を受付けました。'), $display_name) . "\r\n\r\n";
+	$message .= __('To reset your password, visit the following address:') . "\r\n";
+	$message .= network_site_url("wp-login-default.php?action=rp&key=$key&login=" . rawurlencode($user_login), 'login') . "\r\n";
 
 	if ( is_multisite() )
 		$blogname = $GLOBALS['current_site']->site_name;
@@ -482,7 +489,7 @@ case 'retrievepassword' :
 	if ( $http_post ) {
 		$errors = retrieve_password();
 		if ( !is_wp_error($errors) ) {
-			$redirect_to = !empty( $_REQUEST['redirect_to'] ) ? $_REQUEST['redirect_to'] : 'wp-login.php?checkemail=confirm';
+			$redirect_to = !empty( $_REQUEST['redirect_to'] ) ? $_REQUEST['redirect_to'] : 'wp-login-default.php?checkemail=confirm';
 			wp_safe_redirect( $redirect_to );
 			exit();
 		}
@@ -518,7 +525,7 @@ case 'retrievepassword' :
 
 ?>
 
-<form name="lostpasswordform" id="lostpasswordform" action="<?php echo esc_url( site_url( 'wp-login.php?action=lostpassword', 'login_post' ) ); ?>" method="post">
+<form name="lostpasswordform" id="lostpasswordform" action="<?php echo esc_url( site_url( 'wp-login-default.php?action=lostpassword', 'login_post' ) ); ?>" method="post">
 	<p>
 		<label for="user_login" ><?php _e('Username or E-mail:') ?><br />
 		<input type="text" name="user_login" id="user_login" class="input" value="<?php echo esc_attr($user_login); ?>" size="20" /></label>
@@ -561,9 +568,9 @@ case 'rp' :
 
 	if ( is_wp_error($user) ) {
 		if ( $user->get_error_code() === 'expired_key' )
-			wp_redirect( site_url( 'wp-login.php?action=lostpassword&error=expiredkey' ) );
+			wp_redirect( site_url( 'wp-login-default.php?action=lostpassword&error=expiredkey' ) );
 		else
-			wp_redirect( site_url( 'wp-login.php?action=lostpassword&error=invalidkey' ) );
+			wp_redirect( site_url( 'wp-login-default.php?action=lostpassword&error=invalidkey' ) );
 		exit;
 	}
 
@@ -595,7 +602,7 @@ case 'rp' :
 	login_header(__('Reset Password'), '<p class="message reset-pass">' . __('Enter your new password below.') . '</p>', $errors );
 
 ?>
-<form name="resetpassform" id="resetpassform" action="<?php echo esc_url( site_url( 'wp-login.php?action=resetpass&key=' . urlencode( $_GET['key'] ) . '&login=' . urlencode( $_GET['login'] ), 'login_post' ) ); ?>" method="post" autocomplete="off">
+<form name="resetpassform" id="resetpassform" action="<?php echo esc_url( site_url( 'wp-login-default.php?action=resetpass&key=' . urlencode( $_GET['key'] ) . '&login=' . urlencode( $_GET['login'] ), 'login_post' ) ); ?>" method="post" autocomplete="off">
 	<input type="hidden" id="user_login" value="<?php echo esc_attr( $_GET['login'] ); ?>" autocomplete="off" />
 
 	<p>
@@ -705,6 +712,8 @@ case 'register' :
 login_footer('user_login');
 break;
 
+case 'changeskin' :
+	$login_skin = 2;
 case 'login' :
 default:
 	$secure_cookie = '';
@@ -825,6 +834,25 @@ default:
 	if ( $reauth )
 		wp_clear_auth_cookie();
 
+	// Select login skin
+	if ( !wp_is_mobile() ) {
+		if ( empty( $login_skin ) && 'login' != $action ) {
+			if ( !empty( $_COOKIE['cc-login-skin'] ) ) {
+				$login_skin = $_COOKIE['cc-login-skin'];
+			}
+			if ( $login_skin == 1 ) {
+				$redirect_url = network_home_url() . '/wp-login.php';
+				if ( !empty( $_REQUEST['redirect_to'] ) ) {
+					$redirect_url .= '?redirect_to=' . urlencode( $_REQUEST['redirect_to'] );
+				}
+				wp_safe_redirect( $redirect_url );
+			}
+		}
+		if ( !isset($_GET['checkemail']) ) {
+			setcookie('cc-login-skin', 2, time() + YEAR_IN_SECONDS, COOKIEPATH);
+		}
+	}
+
 	login_header(__('Log In'), '', $errors);
 
 	if ( isset($_POST['log']) )
@@ -832,7 +860,7 @@ default:
 	$rememberme = ! empty( $_POST['rememberme'] );
 ?>
 
-<form name="loginform" id="loginform" action="<?php echo esc_url( site_url( 'wp-login.php', 'login_post' ) ); ?>" method="post">
+<form name="loginform" id="loginform" action="<?php echo esc_url( site_url( 'wp-login-default.php', 'login_post' ) ); ?>" method="post">
 	<p>
 		<label for="user_login"><?php _e('Username') ?><br />
 		<input type="text" name="log" id="user_login" class="input" value="<?php echo esc_attr($user_login); ?>" size="20" /></label>

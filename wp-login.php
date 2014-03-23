@@ -11,6 +11,25 @@
 /** Make sure that the WordPress bootstrap has run before continuing. */
 require( dirname(__FILE__) . '/wp-load.php' );
 
+function cc_login_footer() {
+	if ( !wp_is_mobile() ) : ?>
+		<div id="footer">
+			<div class="padder">
+				<div class="site-info">
+				<ul>
+					<li><a href="http://www.cij.co.jp/">運営会社</a></li>
+					<li><a href="mailto:<?php echo get_option('admin_email'); ?>">お問い合わせ</a></li>
+				</ul>
+			</div>
+			<div class="copyright">
+				<p>&copy; <?php echo date('Y') ?> Clover Cafe. All rights reserved.</p>
+			</div>
+		</div><!-- .padder -->
+	</div><!-- #footer -->
+<?php endif;
+}
+add_action( 'login_footer', 'cc_login_footer' );
+
 // Redirect to https login if forced to use SSL
 if ( force_ssl_admin() && ! is_ssl() ) {
 	if ( 0 === strpos($_SERVER['REQUEST_URI'], 'http') ) {
@@ -63,8 +82,12 @@ function login_header($title = 'Log In', $message = '', $wp_error = '') {
 	<title><?php bloginfo('name'); ?> &rsaquo; <?php echo $title; ?></title>
 	<?php
 
-	wp_admin_css( 'wp-admin', true );
-	wp_admin_css( 'colors-fresh', true );
+	if ( wp_is_mobile() ) {
+		wp_admin_css( 'wp-admin', true );
+		wp_admin_css( 'colors-fresh', true );
+	} else { ?>
+		<link rel="stylesheet" type="text/css" media="screen" href="login/login.css" /><?php
+	}
 
 	// Remove all stored post data on logging out.
 	// This could be added by add_action('login_head'...) like wp_shake_js()
@@ -75,6 +98,7 @@ function login_header($title = 'Log In', $message = '', $wp_error = '') {
 		<?php
 	}
 
+	if ( wp_is_mobile() ) {
 	/**
 	 * Enqueue scripts and styles for the login page.
 	 *
@@ -87,6 +111,7 @@ function login_header($title = 'Log In', $message = '', $wp_error = '') {
 	 * @since 2.1.0
 	 */
 	do_action( 'login_head' );
+	}
 
 	if ( is_multisite() ) {
 		$login_header_url   = network_home_url();
@@ -141,9 +166,11 @@ function login_header($title = 'Log In', $message = '', $wp_error = '') {
 	?>
 	</head>
 	<body class="login <?php echo esc_attr( implode( ' ', $classes ) ); ?>">
+	<?php if ( wp_is_mobile() ) { ?>
 	<div id="login">
 		<h1><a href="<?php echo esc_url( $login_header_url ); ?>" title="<?php echo esc_attr( $login_header_title ); ?>"><?php bloginfo( 'name' ); ?></a></h1>
 	<?php
+	}
 
 	unset( $login_header_url, $login_header_title );
 
@@ -194,9 +221,13 @@ function login_header($title = 'Log In', $message = '', $wp_error = '') {
 			 *
 			 * @param string $messages Login messages.
 			 */
-			echo '<p class="message">' . apply_filters( 'login_messages', $messages ) . "</p>\n";
+			echo '<div class="message">' . apply_filters( 'login_messages', $messages ) . "</div>\n";
 		}
 	}
+	?>
+	<div id="container">
+		<div id="main">
+<?php
 } // End of login_header()
 
 /**
@@ -207,12 +238,7 @@ function login_header($title = 'Log In', $message = '', $wp_error = '') {
 function login_footer($input_id = '') {
 	global $interim_login;
 
-	// Don't allow interim logins to navigate away from the page.
-	if ( ! $interim_login ): ?>
-	<p id="backtoblog"><a href="<?php echo esc_url( home_url( '/' ) ); ?>" title="<?php esc_attr_e( 'Are you lost?' ); ?>"><?php printf( __( '&larr; Back to %s' ), get_bloginfo( 'title', 'display' ) ); ?></a></p>
-	<?php endif; ?>
-
-	</div>
+?>
 
 	<?php if ( !empty($input_id) ) : ?>
 	<script type="text/javascript">
@@ -229,6 +255,7 @@ function login_footer($input_id = '') {
 	 */
 	do_action( 'login_footer' ); ?>
 	<div class="clear"></div>
+	</div><!-- #container -->
 	</body>
 	</html>
 	<?php
@@ -295,6 +322,7 @@ function retrieve_password() {
 	// redefining user_login ensures we return the right case in the email
 	$user_login = $user_data->user_login;
 	$user_email = $user_data->user_email;
+	$display_name = $user_data->display_name;
 
 	/**
 	 * Fires before a new password is retrieved.
@@ -705,6 +733,8 @@ case 'register' :
 login_footer('user_login');
 break;
 
+case 'changeskin' :
+	$login_skin = 1;
 case 'login' :
 default:
 	$secure_cookie = '';
@@ -825,6 +855,23 @@ default:
 	if ( $reauth )
 		wp_clear_auth_cookie();
 
+	// Select login skin
+	if ( !wp_is_mobile() ) {
+		if ( empty( $login_skin ) ) {
+			if ( !empty( $_COOKIE['cc-login-skin'] ) ) {
+				$login_skin = $_COOKIE['cc-login-skin'];
+			}
+			if ( 2 == $login_skin ) {
+				$redirect_url = network_home_url() . '/wp-login-default.php';
+				if ( !empty( $_REQUEST['redirect_to'] ) ) {
+					$redirect_url .= '?redirect_to=' . urlencode( $_REQUEST['redirect_to'] );
+				}
+				wp_safe_redirect( $redirect_url );
+			}
+		}
+		setcookie('cc-login-skin', 1, time() + YEAR_IN_SECONDS, COOKIEPATH);
+	}
+
 	login_header(__('Log In'), '', $errors);
 
 	if ( isset($_POST['log']) )
@@ -832,14 +879,26 @@ default:
 	$rememberme = ! empty( $_POST['rememberme'] );
 ?>
 
+<div id="content">
+<div class="padder">
 <form name="loginform" id="loginform" action="<?php echo esc_url( site_url( 'wp-login.php', 'login_post' ) ); ?>" method="post">
 	<p>
+	<?php if ( wp_is_mobile() ) : ?>
 		<label for="user_login"><?php _e('Username') ?><br />
-		<input type="text" name="log" id="user_login" class="input" value="<?php echo esc_attr($user_login); ?>" size="20" /></label>
+	<?php endif; ?>
+		<input type="text" name="log" id="user_login" class="input" value="<?php echo esc_attr($user_login); ?>" size="20" tabindex="10" />
+	<?php if ( wp_is_mobile() ) : ?>
+		</label>
+	<?php endif; ?>
 	</p>
 	<p>
+	<?php if ( wp_is_mobile() ) : ?>
 		<label for="user_pass"><?php _e('Password') ?><br />
-		<input type="password" name="pwd" id="user_pass" class="input" value="" size="20" /></label>
+	<?php endif; ?>
+		<input type="password" name="pwd" id="user_pass" class="input" value="" size="20" tabindex="20" />
+	<?php if ( wp_is_mobile() ) : ?>
+		</label>
+	<?php endif; ?>
 	</p>
 	<?php
 	/**
@@ -851,7 +910,11 @@ default:
 	?>
 	<p class="forgetmenot"><label for="rememberme"><input name="rememberme" type="checkbox" id="rememberme" value="forever" <?php checked( $rememberme ); ?> /> <?php esc_attr_e('Remember Me'); ?></label></p>
 	<p class="submit">
+	<?php if ( wp_is_mobile() ) : ?>
 		<input type="submit" name="wp-submit" id="wp-submit" class="button button-primary button-large" value="<?php esc_attr_e('Log In'); ?>" />
+	<?php else : ?>
+		<input type="image" name="submit" src="login/dummy.gif" id="wp-submit" class="button-primary" alt="ログイン" />
+	<?php endif; ?>
 <?php	if ( $interim_login ) { ?>
 		<input type="hidden" name="interim-login" value="1" />
 <?php	} else { ?>
@@ -876,7 +939,13 @@ default:
 	<a href="<?php echo esc_url( wp_lostpassword_url() ); ?>" title="<?php esc_attr_e( 'Password Lost and Found' ); ?>"><?php _e( 'Lost your password?' ); ?></a>
 <?php endif; ?>
 </p>
+<?php if ( !wp_is_mobile() ) : ?>
+<p id="change-skin"><a href="<?php echo network_home_url() . '/wp-login-default.php?action=changeskin'; if ( !empty( $_REQUEST['redirect_to'] ) ) echo '&redirect_to=' . urlencode( $_REQUEST['redirect_to'] ); ?>">ログインスキンを変更する</a></p>
+<?php endif; ?>
 <?php } ?>
+</div><!-- .padder -->
+</div><!-- #content -->
+</div><!-- #main -->
 
 <script type="text/javascript">
 function wp_attempt_focus(){

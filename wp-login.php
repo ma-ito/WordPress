@@ -862,7 +862,7 @@ default:
 				$login_skin = $_COOKIE['cc-login-skin'];
 			}
 			if ( 2 == $login_skin ) {
-				$redirect_url = network_home_url() . '/wp-login-default.php';
+				$redirect_url = network_home_url() . '/wp-login-simple.php';
 				if ( !empty( $_REQUEST['redirect_to'] ) ) {
 					$redirect_url .= '?redirect_to=' . urlencode( $_REQUEST['redirect_to'] );
 				}
@@ -940,7 +940,7 @@ default:
 <?php endif; ?>
 </p>
 <?php if ( !wp_is_mobile() ) : ?>
-<p id="change-skin"><a href="<?php echo network_home_url() . '/wp-login-default.php?action=changeskin'; if ( !empty( $_REQUEST['redirect_to'] ) ) echo '&redirect_to=' . urlencode( $_REQUEST['redirect_to'] ); ?>">ログインスキンを変更する</a></p>
+<p id="change-skin"><a href="<?php echo network_home_url() . '/wp-login-simple.php?action=changeskin'; if ( !empty( $_REQUEST['redirect_to'] ) ) echo '&redirect_to=' . urlencode( $_REQUEST['redirect_to'] ); ?>">ログインスキンを変更する</a></p>
 <?php endif; ?>
 <?php } ?>
 </div><!-- .padder -->

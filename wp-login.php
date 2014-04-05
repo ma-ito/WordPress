@@ -886,7 +886,7 @@ default:
 	<?php if ( wp_is_mobile() ) : ?>
 		<label for="user_login"><?php _e('Username') ?><br />
 	<?php endif; ?>
-		<input type="text" name="log" id="user_login" class="input" value="<?php echo esc_attr($user_login); ?>" size="20" tabindex="10" />
+		<input type="text" name="log" id="user_login" class="input" value="<?php echo esc_attr($user_login); ?>" size="20" tabindex="10" placeholder="yamada-kuma" />
 	<?php if ( wp_is_mobile() ) : ?>
 		</label>
 	<?php endif; ?>

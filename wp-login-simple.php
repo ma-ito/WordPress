@@ -61,6 +61,7 @@ function login_header($title = 'Log In', $message = '', $wp_error = '') {
 	<head>
 	<meta http-equiv="Content-Type" content="<?php bloginfo('html_type'); ?>; charset=<?php bloginfo('charset'); ?>" />
 	<title><?php bloginfo('name'); ?> &rsaquo; <?php echo $title; ?></title>
+	<link rel="shortcut icon" href="/favicon.ico" />
 	<?php
 
 	wp_admin_css( 'wp-admin', true );

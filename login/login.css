@@ -40,7 +40,6 @@ a:hover {
 	display: inline-block;
 	min-height: 664px;
 	font-size: 0;
-	line-height: 0;
 }
 #content {
 	position:relative;
@@ -52,6 +51,9 @@ a:hover {
 	-webkit-box-shadow:0 1px 4px rgba(0, 0, 0, 0.3), 0 0 40px rgba(0, 0, 0, 0) inset;
 	-moz-box-shadow:0 1px 4px rgba(0, 0, 0, 0.3), 0 0 40px rgba(0, 0, 0, 0) inset;
 	box-shadow:0 1px 4px rgba(0, 0, 0, 0.3), 0 0 40px rgba(0, 0, 0, 0) inset;
+}
+#content .padder {
+	height: 100%;
 }
 #content .padder:after {
 	position: absolute;
@@ -110,6 +112,9 @@ a:hover {
 	border: 1px solid #ccc;
 	z-index: 1;
 }
+#loginform {
+	height: 0;
+}
 #loginform p.forgetmenot label {
 	cursor: pointer;
 }
@@ -120,7 +125,7 @@ a:hover {
 	display: block;
 	position: relative;
 	left: 727px;
-	top: 336px;
+	top: 331px;
 	width: 185px;
 	font-size: 9pt;
 	z-index: 1;
@@ -129,7 +134,7 @@ a:hover {
 	display: block;
 	position: relative;
 	left: 739px;
-	top: 321px;
+	top: 407px;
 	width: 170px;
 	font-size: 9pt;
 	text-align: center;
@@ -138,8 +143,8 @@ a:hover {
 .submit .button-primary {
 	display: block;
 	position: relative;
-	left: 774px;
-	top: 368px;
+	left: 775px;
+	top: 358px;
 	width: 94px;
 	height: 31px;
 	border: none 0px;
@@ -151,7 +156,7 @@ a:hover {
 	display: block;
 	position: relative;
 	left: 737px;
-	top: 410px;
+	top: 474px;
 	width: 170px;
 	font-size: 9pt;
 	text-align: center;

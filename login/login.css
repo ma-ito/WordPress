@@ -33,13 +33,14 @@ a:hover {
 #container {
 	position: relative;
 	height: 100%;
-	min-height: 745px;
+	min-height: 755px;
 }
 #main{
 	position: relative;
 	display: inline-block;
 	min-height: 664px;
 	font-size: 0;
+	margin-top: 20px;
 }
 #content {
 	position:relative;
@@ -64,13 +65,13 @@ a:hover {
 	box-shadow: inset 0px 0px 13px 19px #fff;
 	content: "";
 }
-#content:before, #content:after {
+#content:before {
 	content:"";
 	position:absolute;
 	z-index:-1;
-	-webkit-box-shadow:0 0 20px rgba(0,0,0,0.8);
-	-moz-box-shadow:0 0 20px rgba(0,0,0,0.8);
-	box-shadow:0 0 20px rgba(0,0,0,0.8);
+	-webkit-box-shadow:0 5px 20px rgba(0,0,0,0.4);
+	-moz-box-shadow:0 5px 20px rgba(0,0,0,0.4);
+	box-shadow:0 5px 20px rgba(0,0,0,0.4);
 	top:0;
 	bottom:0;
 	left:10px;
@@ -220,6 +221,6 @@ a:hover {
 	position: absolute;
 	font-size: 14px;
 	width: 100%;
-	top: 625px;
+	top: 645px;
 	z-index: 2;
 }

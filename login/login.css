@@ -42,6 +42,16 @@ a:hover {
 	font-size: 0;
 	margin-top: 20px;
 }
+#main .title {
+	float: right;
+	color: #fff;
+	text-align: left;
+	font-size: 18px;
+	line-height: 1.4;
+	margin-top: 50px;
+	margin-right: 75px;
+	text-shadow: 2px 2px 3px #262626;
+}
 #content {
 	position:relative;
 	background: url(main.jpg) no-repeat;

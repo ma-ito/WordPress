@@ -920,9 +920,11 @@ default:
 
 <div id="content">
 <div class="padder">
+<?php if ( !wp_is_mobile() ) : ?>
 <p class="title">クローバーカフェへようこそ！<br />
 ゆっくりお茶でも飲みながら楽しんでいってください。<br />
 幸福のクローバーもどこかに隠れているかもしれません。</p>
+<?php endif; ?>
 <form name="loginform" id="loginform" action="<?php echo esc_url( site_url( 'wp-login.php', 'login_post' ) ); ?>" method="post">
 	<p>
 	<?php if ( wp_is_mobile() ) : ?>

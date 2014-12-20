@@ -88,6 +88,9 @@ function login_header( $title = 'Log In', $message = '', $wp_error = '' ) {
 	<link rel="shortcut icon" href="/favicon.ico" />
 	<?php
 
+	if ( !wp_is_mobile() ) { ?>
+		<link rel="stylesheet" type="text/css" media="screen" href="login/login.css" /><?php
+	}
 	wp_admin_css( 'login', true );
 
 	// Remove all stored post data on logging out.

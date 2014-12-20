@@ -200,7 +200,6 @@
 	-webkit-transform: rotateY(180deg);
 	-ms-transform:     rotateY(180deg);
 	transform:         rotateY(180deg);
->>>>>>> 3.9-branch
 }
 
 /* Disable pointers at responsive sizes */

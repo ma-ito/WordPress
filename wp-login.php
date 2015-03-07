@@ -103,13 +103,14 @@ function login_header( $title = 'Log In', $message = '', $wp_error = '' ) {
 		<?php
 	}
 
-	if ( wp_is_mobile() ) {
 	/**
 	 * Enqueue scripts and styles for the login page.
 	 *
 	 * @since 3.1.0
 	 */
 	do_action( 'login_enqueue_scripts' );
+
+	if ( wp_is_mobile() ) {
 	/**
 	 * Fires in the login page header after scripts are enqueued.
 	 *

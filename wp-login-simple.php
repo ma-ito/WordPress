@@ -221,7 +221,7 @@ function login_footer($input_id = '') {
 	<?php if ( isset($_GET['checkemail']) && 'confirm' == $_GET['checkemail'] ) :?>
 	<p id="backtoblog"><a href="<?php echo esc_url( home_url( '/' ) ); ?>" title="<?php esc_attr_e( 'Are you lost?' ); ?>"><?php printf( __( '&larr; Back to %s' ), get_bloginfo( 'title', 'display' ) ); ?></a></p>
 	<?php endif; ?>
-	<p id="backtoblog"><a href="<?php echo network_home_url() . '/wp-login.php?action=changeskin'; if ( !empty( $_REQUEST['redirect_to'] ) ) echo '&redirect_to=' . urlencode( $_REQUEST['redirect_to'] ); ?>">ログインスキンを変更する</a></p>
+	<p id="backtoblog"><a href="<?php echo esc_url( network_home_url() . '/wp-login.php?action=changeskin' ); if ( !empty( $_REQUEST['redirect_to'] ) ) echo '&amp;redirect_to=' . rawurlencode( $_REQUEST['redirect_to'] ); ?>">ログインスキンを変更する</a></p>
 	<?php else : ?>
 	<p id="backtoblog"><a href="<?php echo esc_url( home_url( '/' ) ); ?>" title="<?php esc_attr_e( 'Are you lost?' ); ?>"><?php printf( __( '&larr; Back to %s' ), get_bloginfo( 'title', 'display' ) ); ?></a></p>
 	<?php endif; ?>

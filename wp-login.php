@@ -986,7 +986,7 @@ default:
 <?php endif; ?>
 </p>
 <?php if ( !wp_is_mobile() ) : ?>
-<p id="change-skin"><a href="<?php echo network_home_url() . '/wp-login-simple.php?action=changeskin'; if ( !empty( $_REQUEST['redirect_to'] ) ) echo '&redirect_to=' . urlencode( $_REQUEST['redirect_to'] ); ?>">ログインスキンを変更する</a></p>
+<p id="change-skin"><a href="<?php echo esc_url( network_home_url() . '/wp-login-simple.php?action=changeskin' ); if ( !empty( $_REQUEST['redirect_to'] ) ) echo '&amp;redirect_to=' . rawurlencode( $_REQUEST['redirect_to'] ); ?>">ログインスキンを変更する</a></p>
 <?php endif; ?>
 <?php } ?>
 </div><!-- .padder -->

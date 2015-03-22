@@ -230,7 +230,12 @@ a:hover {
 	display: block;
 	position: absolute;
 	font-size: 14px;
+	color: red;
 	width: 100%;
 	top: 645px;
 	z-index: 2;
+}
+
+#login_error a {
+	color: blue;
 }

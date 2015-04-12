@@ -30,7 +30,7 @@
 function wptexturize($text, $reset = false) {
 	global $wp_cockneyreplace, $shortcode_tags;
 	static $static_characters, $static_replacements, $dynamic_characters, $dynamic_replacements,
-		$default_no_texturize_tags, $default_no_texturize_shortcodes, $run_texturize = false;
+		$default_no_texturize_tags, $default_no_texturize_shortcodes, $run_texturize = true;
 
 	// If there's nothing to do, just stop.
 	if ( empty( $text ) || false === $run_texturize ) {

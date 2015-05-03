@@ -2077,7 +2077,7 @@ function comment_form( $args = array(), $post_id = null ) {
 		/** This filter is documented in wp-includes/link-template.php */
 		'logged_in_as'         => '<p class="logged-in-as">' . sprintf( __( 'Logged in as <a href="%1$s">%2$s</a>. <a href="%3$s" title="Log out of this account">Log out?</a>' ), get_edit_user_link(), $user_identity, wp_logout_url( apply_filters( 'the_permalink', get_permalink( $post_id ) ) ) ) . '</p>',
 		'comment_notes_before' => '<p class="comment-notes">' . __( 'Your email address will not be published.' ) . ( $req ? $required_text : '' ) . '</p>',
-		'comment_notes_after'  => '<p class="form-allowed-tags">' . sprintf( __( 'You may use these <abbr title="HyperText Markup Language">HTML</abbr> tags and attributes: %s' ), ' <code>' . ( function_exists( 'cc_allowed_tags' ) ? cc_allowed_tags() : allowed_tags() ) . '</code>' ) . '</p>',
+		'comment_notes_after'  => '<p class="form-allowed-tags">' . sprintf( __( 'You may use these <abbr title="HyperText Markup Language">HTML</abbr> tags and attributes: %s' ), ' <code>' . allowed_tags() . '</code>' ) . '</p>',
 		'id_form'              => 'commentform',
 		'id_submit'            => 'submit',
 		'title_reply'          => __( 'Leave a Reply' ),

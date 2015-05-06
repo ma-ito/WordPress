@@ -14,6 +14,7 @@
 
 		switch ( strength ) {
 			case 2:
+				if ($('#pass2').val()) $('#pass2').val('');
 				$('#pass-strength-result').addClass('bad').html( pwsL10n.bad );
 				break;
 			case 3:
@@ -26,7 +27,8 @@
 				$('#pass-strength-result').addClass('short').html( pwsL10n.mismatch );
 				break;
 			default:
-				$('#pass-strength-result').addClass('short').html( pwsL10n['short'] );
+				if ($('#pass2').val()) $('#pass2').val('');
+				$('#pass-strength-result').addClass('short').html( pwsL10n.short );
 		}
 	}
 

@@ -11,25 +11,6 @@
 /** Make sure that the WordPress bootstrap has run before continuing. */
 require( dirname(__FILE__) . '/wp-load.php' );
 
-function cc_login_footer() {
-	if ( !wp_is_mobile() ) : ?>
-		<div id="footer">
-			<div class="padder">
-				<div class="site-info">
-				<ul>
-					<li><a href="http://www.cij.co.jp/">運営会社</a></li>
-					<li><a href="mailto:<?php echo get_option('admin_email'); ?>">お問い合わせ</a></li>
-				</ul>
-			</div>
-			<div class="copyright">
-				<p>&copy; <?php echo date('Y') ?> Clover Cafe. All rights reserved.</p>
-			</div>
-		</div><!-- .padder -->
-	</div><!-- #footer -->
-<?php endif;
-}
-add_action( 'login_footer', 'cc_login_footer' );
-
 // Redirect to https login if forced to use SSL
 if ( force_ssl_admin() && ! is_ssl() ) {
 	if ( 0 === strpos($_SERVER['REQUEST_URI'], 'http') ) {
@@ -87,11 +68,7 @@ function login_header( $title = 'Log In', $message = '', $wp_error = '' ) {
 	<link rel="shortcut icon" href="/favicon.ico" />
 	<?php
 
-	if ( wp_is_mobile() ) {
-		wp_admin_css( 'login', true );
-	} else { ?>
-		<link rel="stylesheet" type="text/css" media="screen" href="login/login.css" /><?php
-	}
+	wp_admin_css( 'login', true );
 
 	/*
 	 * Remove all stored post data on logging out.
@@ -110,15 +87,12 @@ function login_header( $title = 'Log In', $message = '', $wp_error = '' ) {
 	 * @since 3.1.0
 	 */
 	do_action( 'login_enqueue_scripts' );
-
-	if ( wp_is_mobile() ) {
 	/**
 	 * Fires in the login page header after scripts are enqueued.
 	 *
 	 * @since 2.1.0
 	 */
 	do_action( 'login_head' );
-	}
 
 	if ( is_multisite() ) {
 		$login_header_url   = network_home_url();
@@ -174,11 +148,9 @@ function login_header( $title = 'Log In', $message = '', $wp_error = '' ) {
 	?>
 	</head>
 	<body class="login <?php echo esc_attr( implode( ' ', $classes ) ); ?>">
-	<?php if ( wp_is_mobile() ) { ?>
 	<div id="login">
 		<h1><img src="login/cafe-logo.png" width="120px" /></h1>
 	<?php
-	}
 
 	unset( $login_header_url, $login_header_title );
 
@@ -229,13 +201,9 @@ function login_header( $title = 'Log In', $message = '', $wp_error = '' ) {
 			 *
 			 * @param string $messages Login messages.
 			 */
-			echo '<div class="message">' . apply_filters( 'login_messages', $messages ) . "</div>\n";
+			echo '<p class="message">' . apply_filters( 'login_messages', $messages ) . "</p>\n";
 		}
 	}
-	?>
-	<div id="container">
-		<div id="main">
-<?php
 } // End of login_header()
 
 /**
@@ -246,7 +214,21 @@ function login_header( $title = 'Log In', $message = '', $wp_error = '' ) {
 function login_footer($input_id = '') {
 	global $interim_login;
 
-?>
+	// Don't allow interim logins to navigate away from the page.
+	if ( ! $interim_login ): ?>
+	<?php
+	$action = isset($_REQUEST['action']) ? $_REQUEST['action'] : 'login';
+	if ( 'changeskin' == $action || 'login' == $action ) : ?>
+	<?php if ( isset($_GET['checkemail']) && 'confirm' == $_GET['checkemail'] ) :?>
+	<p id="backtoblog"><a href="<?php echo esc_url( home_url( '/' ) ); ?>" title="<?php esc_attr_e( 'Are you lost?' ); ?>"><?php printf( __( '&larr; Back to %s' ), get_bloginfo( 'title', 'display' ) ); ?></a></p>
+	<?php endif; ?>
+	<p id="backtoblog"><a href="<?php echo esc_url( network_home_url() . '/wp-login.php?action=changeskin' ); if ( !empty( $_REQUEST['redirect_to'] ) ) echo '&amp;redirect_to=' . rawurlencode( $_REQUEST['redirect_to'] ); ?>">ログインスキンを変更する</a></p>
+	<?php else : ?>
+	<p id="backtoblog"><a href="<?php echo esc_url( home_url( '/' ) ); ?>" title="<?php esc_attr_e( 'Are you lost?' ); ?>"><?php printf( __( '&larr; Back to %s' ), get_bloginfo( 'title', 'display' ) ); ?></a></p>
+	<?php endif; ?>
+	<?php endif; ?>
+
+	</div>
 
 	<?php if ( !empty($input_id) ) : ?>
 	<script type="text/javascript">
@@ -263,7 +245,6 @@ function login_footer($input_id = '') {
 	 */
 	do_action( 'login_footer' ); ?>
 	<div class="clear"></div>
-	</div><!-- #container -->
 	</body>
 	</html>
 	<?php
@@ -387,12 +368,9 @@ function retrieve_password() {
 	$hashed = $wp_hasher->HashPassword( $key );
 	$wpdb->update( $wpdb->users, array( 'user_activation_key' => $hashed ), array( 'user_login' => $user_login ) );
 
-	$message = __('Someone requested that the password be reset for the following account:') . "\r\n\r\n";
-	$message .= network_home_url( '/' ) . "\r\n\r\n";
-	$message .= sprintf(__('Username: %s'), $user_login) . "\r\n\r\n";
-	$message .= __('If this was a mistake, just ignore this email and nothing will happen.') . "\r\n\r\n";
-	$message .= __('To reset your password, visit the following address:') . "\r\n\r\n";
-	$message .= '<' . network_site_url("wp-login.php?action=rp&key=$key&login=" . rawurlencode($user_login), 'login') . ">\r\n";
+	$message = sprintf(__('%sさんのパスワードリセット要求を受付けました。'), $display_name) . "\r\n\r\n";
+	$message .= __('To reset your password, visit the following address:') . "\r\n";
+	$message .= network_site_url("wp-login-simple.php?action=rp&key=$key&login=" . rawurlencode($user_login), 'login') . "\r\n";
 
 	if ( is_multisite() )
 		$blogname = $GLOBALS['current_site']->site_name;
@@ -423,7 +401,9 @@ function retrieve_password() {
 	 */
 	$message = apply_filters( 'retrieve_password_message', $message, $key );
 
-	if ( $message && !wp_mail( $user_email, wp_specialchars_decode( $title ), $message ) )
+	$header = apply_filters( 'cc_append_cc_email_address', $user_data->ID );
+
+	if ( $message && !wp_mail( $user_email, wp_specialchars_decode( $title ), $message, $header ) )
 		wp_die( __('The e-mail could not be sent.') . "<br />\n" . __('Possible reason: your host may have disabled the mail() function.') );
 
 	return true;
@@ -519,7 +499,7 @@ case 'retrievepassword' :
 	if ( $http_post ) {
 		$errors = retrieve_password();
 		if ( !is_wp_error($errors) ) {
-			$redirect_to = !empty( $_REQUEST['redirect_to'] ) ? $_REQUEST['redirect_to'] : 'wp-login.php?checkemail=confirm';
+			$redirect_to = !empty( $_REQUEST['redirect_to'] ) ? $_REQUEST['redirect_to'] : 'wp-login-simple.php?checkemail=confirm';
 			wp_safe_redirect( $redirect_to );
 			exit();
 		}
@@ -555,7 +535,7 @@ case 'retrievepassword' :
 
 ?>
 
-<form name="lostpasswordform" id="lostpasswordform" action="<?php echo esc_url( network_site_url( 'wp-login.php?action=lostpassword', 'login_post' ) ); ?>" method="post">
+<form name="lostpasswordform" id="lostpasswordform" action="<?php echo esc_url( network_site_url( 'wp-login-simple.php?action=lostpassword', 'login_post' ) ); ?>" method="post">
 	<p>
 		<label for="user_login" ><?php _e('Username or E-mail:') ?><br />
 		<input type="text" name="user_login" id="user_login" class="input" value="<?php echo esc_attr($user_login); ?>" size="20" /></label>
@@ -611,9 +591,9 @@ case 'rp' :
 	if ( ! $user || is_wp_error( $user ) ) {
 		setcookie( $rp_cookie, ' ', time() - YEAR_IN_SECONDS, $rp_path, COOKIE_DOMAIN, is_ssl(), true );
 		if ( $user && $user->get_error_code() === 'expired_key' )
-			wp_redirect( site_url( 'wp-login.php?action=lostpassword&error=expiredkey' ) );
+			wp_redirect( site_url( 'wp-login-simple.php?action=lostpassword&error=expiredkey' ) );
 		else
-			wp_redirect( site_url( 'wp-login.php?action=lostpassword&error=invalidkey' ) );
+			wp_redirect( site_url( 'wp-login-simple.php?action=lostpassword&error=invalidkey' ) );
 		exit;
 	}
 
@@ -646,7 +626,7 @@ case 'rp' :
 	login_header(__('Reset Password'), '<p class="message reset-pass">' . __('Enter your new password below.') . '</p>', $errors );
 
 ?>
-<form name="resetpassform" id="resetpassform" action="<?php echo esc_url( network_site_url( 'wp-login.php?action=resetpass', 'login_post' ) ); ?>" method="post" autocomplete="off">
+<form name="resetpassform" id="resetpassform" action="<?php echo esc_url( network_site_url( 'wp-login-simple.php?action=resetpass', 'login_post' ) ); ?>" method="post" autocomplete="off">
 	<input type="hidden" id="user_login" value="<?php echo esc_attr( $rp_login ); ?>" autocomplete="off" />
 
 	<p>
@@ -769,7 +749,7 @@ login_footer('user_login');
 break;
 
 case 'changeskin' :
-	$login_skin = 1;
+	$login_skin = 2;
 case 'login' :
 default:
 	$secure_cookie = '';
@@ -893,19 +873,21 @@ default:
 
 	// Select login skin
 	if ( !wp_is_mobile() ) {
-		if ( empty( $login_skin ) ) {
+		if ( empty( $login_skin ) && 'login' != $action ) {
 			if ( !empty( $_COOKIE['cc-login-skin'] ) ) {
 				$login_skin = $_COOKIE['cc-login-skin'];
 			}
-			if ( 2 == $login_skin ) {
-				$redirect_url = network_home_url() . '/wp-login-simple.php';
+			if ( $login_skin == 1 ) {
+				$redirect_url = network_home_url() . '/wp-login.php';
 				if ( !empty( $_REQUEST['redirect_to'] ) ) {
 					$redirect_url .= '?redirect_to=' . urlencode( $_REQUEST['redirect_to'] );
 				}
 				wp_safe_redirect( $redirect_url );
 			}
 		}
-		setcookie('cc-login-skin', 1, time() + YEAR_IN_SECONDS, COOKIEPATH);
+		if ( !isset($_GET['checkemail']) ) {
+			setcookie('cc-login-skin', 2, time() + YEAR_IN_SECONDS, COOKIEPATH);
+		}
 	}
 
 	login_header(__('Log In'), '', $errors);
@@ -915,31 +897,14 @@ default:
 	$rememberme = ! empty( $_POST['rememberme'] );
 ?>
 
-<div id="content">
-<div class="padder">
-<?php if ( !wp_is_mobile() ) : ?>
-<p class="title">クローバーカフェへようこそ！<br />
-ゆっくりお茶でも飲みながら楽しんでいってください。<br />
-幸福のクローバーもどこかに隠れているかもしれません。</p>
-<?php endif; ?>
-<form name="loginform" id="loginform" action="<?php echo esc_url( site_url( 'wp-login.php', 'login_post' ) ); ?>" method="post">
+<form name="loginform" id="loginform" action="<?php echo esc_url( site_url( 'wp-login-simple.php', 'login_post' ) ); ?>" method="post">
 	<p>
-	<?php if ( wp_is_mobile() ) : ?>
 		<label for="user_login"><?php _e('Username') ?><br />
-	<?php endif; ?>
-		<input type="text" name="log" id="user_login" class="input" value="<?php echo esc_attr($user_login); ?>" size="20" tabindex="10" placeholder="yamada-kuma" />
-	<?php if ( wp_is_mobile() ) : ?>
-		</label>
-	<?php endif; ?>
+		<input type="text" name="log" id="user_login" class="input" value="<?php echo esc_attr($user_login); ?>" size="20" placeholder="yamada-kuma" /></label>
 	</p>
 	<p>
-	<?php if ( wp_is_mobile() ) : ?>
 		<label for="user_pass"><?php _e('Password') ?><br />
-	<?php endif; ?>
-		<input type="password" name="pwd" id="user_pass" class="input" value="" size="20" tabindex="20" />
-	<?php if ( wp_is_mobile() ) : ?>
-		</label>
-	<?php endif; ?>
+		<input type="password" name="pwd" id="user_pass" class="input" value="" size="20" /></label>
 	</p>
 	<?php
 	/**
@@ -951,11 +916,7 @@ default:
 	?>
 	<p class="forgetmenot"><label for="rememberme"><input name="rememberme" type="checkbox" id="rememberme" value="forever" <?php checked( $rememberme ); ?> /> <?php esc_attr_e('Remember Me'); ?></label></p>
 	<p class="submit">
-	<?php if ( wp_is_mobile() ) : ?>
 		<input type="submit" name="wp-submit" id="wp-submit" class="button button-primary button-large" value="<?php esc_attr_e('Log In'); ?>" />
-	<?php else : ?>
-		<input type="image" name="submit" src="login/dummy.gif" id="wp-submit" class="button-primary" alt="ログイン" />
-	<?php endif; ?>
 <?php	if ( $interim_login ) { ?>
 		<input type="hidden" name="interim-login" value="1" />
 <?php	} else { ?>
@@ -981,13 +942,7 @@ default:
 	<a href="<?php echo esc_url( wp_lostpassword_url() ); ?>" title="<?php esc_attr_e( 'Password Lost and Found' ); ?>"><?php _e( 'Lost your password?' ); ?></a>
 <?php endif; ?>
 </p>
-<?php if ( !wp_is_mobile() ) : ?>
-<p id="change-skin"><a href="<?php echo esc_url( network_home_url() . '/wp-login-simple.php?action=changeskin' ); if ( !empty( $_REQUEST['redirect_to'] ) ) echo '&amp;redirect_to=' . rawurlencode( $_REQUEST['redirect_to'] ); ?>">ログインスキンを変更する</a></p>
-<?php endif; ?>
 <?php } ?>
-</div><!-- .padder -->
-</div><!-- #content -->
-</div><!-- #main -->
 
 <script type="text/javascript">
 function wp_attempt_focus(){

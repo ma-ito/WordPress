@@ -22,6 +22,25 @@ if ( force_ssl_admin() && ! is_ssl() ) {
 	}
 }
 
+function cc_login_footer() {
+	if ( !wp_is_mobile() ) : ?>
+		<div id="footer">
+			<div class="padder">
+				<div class="site-info">
+				<ul>
+					<li><a href="http://www.cij.co.jp/">運営会社</a></li>
+					<li><a href="mailto:<?php echo get_option('admin_email'); ?>">お問い合わせ</a></li>
+				</ul>
+			</div>
+			<div class="copyright">
+				<p>&copy; <?php echo date('Y') ?> Clover Cafe. All rights reserved.</p>
+			</div>
+		</div><!-- .padder -->
+	</div><!-- #footer -->
+<?php endif;
+}
+add_action( 'login_footer', 'cc_login_footer' );
+
 /**
  * Output the login page header.
  *
@@ -57,18 +76,18 @@ function login_header( $title = 'Log In', $message = '', $wp_error = '' ) {
 		add_action( 'login_head', 'wp_shake_js', 12 );
 
 	?><!DOCTYPE html>
-	<!--[if IE 8]>
-		<html xmlns="http://www.w3.org/1999/xhtml" class="ie8" <?php language_attributes(); ?>>
-	<![endif]-->
-	<!--[if !(IE 8) ]><!-->
-		<html xmlns="http://www.w3.org/1999/xhtml" <?php language_attributes(); ?>>
-	<!--<![endif]-->
+	<html xmlns="http://www.w3.org/1999/xhtml" <?php language_attributes(); ?>>
 	<head>
 	<meta http-equiv="Content-Type" content="<?php bloginfo('html_type'); ?>; charset=<?php bloginfo('charset'); ?>" />
 	<title><?php bloginfo('name'); ?> &rsaquo; <?php echo $title; ?></title>
+	<link rel="shortcut icon" href="/favicon.ico" />
 	<?php
 
-	wp_admin_css( 'login', true );
+	if ( wp_is_mobile() ) {
+		wp_admin_css( 'login', true );
+	} else { ?>
+		<link rel="stylesheet" type="text/css" media="screen" href="login/login.css" /><?php
+	}
 
 	/*
 	 * Remove all stored post data on logging out.
@@ -87,12 +106,15 @@ function login_header( $title = 'Log In', $message = '', $wp_error = '' ) {
 	 * @since 3.1.0
 	 */
 	do_action( 'login_enqueue_scripts' );
+
+	if ( wp_is_mobile() ) {
 	/**
 	 * Fires in the login page header after scripts are enqueued.
 	 *
 	 * @since 2.1.0
 	 */
 	do_action( 'login_head' );
+	}
 
 	if ( is_multisite() ) {
 		$login_header_url   = network_home_url();
@@ -148,9 +170,11 @@ function login_header( $title = 'Log In', $message = '', $wp_error = '' ) {
 	?>
 	</head>
 	<body class="login <?php echo esc_attr( implode( ' ', $classes ) ); ?>">
+	<?php if ( wp_is_mobile() ) { ?>
 	<div id="login">
-		<h1><a href="<?php echo esc_url( $login_header_url ); ?>" title="<?php echo esc_attr( $login_header_title ); ?>" tabindex="-1"><?php bloginfo( 'name' ); ?></a></h1>
+		<h1><img src="login/cafe-logo.png" width="120px" /></h1>
 	<?php
+	}
 
 	unset( $login_header_url, $login_header_title );
 
@@ -201,9 +225,13 @@ function login_header( $title = 'Log In', $message = '', $wp_error = '' ) {
 			 *
 			 * @param string $messages Login messages.
 			 */
-			echo '<p class="message">' . apply_filters( 'login_messages', $messages ) . "</p>\n";
+			echo '<div class="message">' . apply_filters( 'login_messages', $messages ) . "</div>\n";
 		}
 	}
+	?>
+	<div id="container">
+		<div id="main">
+<?php
 } // End of login_header()
 
 /**
@@ -214,12 +242,7 @@ function login_header( $title = 'Log In', $message = '', $wp_error = '' ) {
 function login_footer($input_id = '') {
 	global $interim_login;
 
-	// Don't allow interim logins to navigate away from the page.
-	if ( ! $interim_login ): ?>
-	<p id="backtoblog"><a href="<?php echo esc_url( home_url( '/' ) ); ?>" title="<?php esc_attr_e( 'Are you lost?' ); ?>"><?php printf( __( '&larr; Back to %s' ), get_bloginfo( 'title', 'display' ) ); ?></a></p>
-	<?php endif; ?>
-
-	</div>
+?>
 
 	<?php if ( !empty($input_id) ) : ?>
 	<script type="text/javascript">
@@ -236,6 +259,7 @@ function login_footer($input_id = '') {
 	 */
 	do_action( 'login_footer' ); ?>
 	<div class="clear"></div>
+	</div><!-- #container -->
 	</body>
 	</html>
 	<?php
@@ -303,6 +327,7 @@ function retrieve_password() {
 	// Redefining user_login ensures we return the right case in the email.
 	$user_login = $user_data->user_login;
 	$user_email = $user_data->user_email;
+	$display_name = $user_data->display_name;
 
 	/**
 	 * Fires before a new password is retrieved.
@@ -763,6 +788,8 @@ case 'register' :
 login_footer('user_login');
 break;
 
+case 'changeskin' :
+	$login_skin = 1;
 case 'login' :
 default:
 	$secure_cookie = '';
@@ -884,6 +911,23 @@ default:
 	if ( $reauth )
 		wp_clear_auth_cookie();
 
+	// Select login skin
+	if ( !wp_is_mobile() ) {
+		if ( empty( $login_skin ) ) {
+			if ( !empty( $_COOKIE['cc-login-skin'] ) ) {
+				$login_skin = $_COOKIE['cc-login-skin'];
+			}
+			if ( 2 == $login_skin ) {
+				$redirect_url = network_home_url() . '/wp-login-simple.php';
+				if ( !empty( $_REQUEST['redirect_to'] ) ) {
+					$redirect_url .= '?redirect_to=' . urlencode( $_REQUEST['redirect_to'] );
+				}
+				wp_safe_redirect( $redirect_url );
+			}
+		}
+		setcookie('cc-login-skin', 1, time() + YEAR_IN_SECONDS, COOKIEPATH);
+	}
+
 	login_header(__('Log In'), '', $errors);
 
 	if ( isset($_POST['log']) )
@@ -897,14 +941,31 @@ default:
 	}
 ?>
 
+<div id="content">
+<div class="padder">
+<?php if ( !wp_is_mobile() ) : ?>
+<p class="title">クローバーカフェへようこそ！<br />
+ゆっくりお茶でも飲みながら楽しんでいってください。<br />
+幸福のクローバーもどこかに隠れているかもしれません。</p>
+<?php endif; ?>
 <form name="loginform" id="loginform" action="<?php echo esc_url( site_url( 'wp-login.php', 'login_post' ) ); ?>" method="post">
 	<p>
+	<?php if ( wp_is_mobile() ) : ?>
 		<label for="user_login"><?php _e('Username') ?><br />
+	<?php endif; ?>
 		<input type="text" name="log" id="user_login"<?php echo $aria_describedby_error; ?> class="input" value="<?php echo esc_attr( $user_login ); ?>" size="20" /></label>
+	<?php if ( wp_is_mobile() ) : ?>
+		</label>
+	<?php endif; ?>
 	</p>
 	<p>
+	<?php if ( wp_is_mobile() ) : ?>
 		<label for="user_pass"><?php _e('Password') ?><br />
+	<?php endif; ?>
 		<input type="password" name="pwd" id="user_pass"<?php echo $aria_describedby_error; ?> class="input" value="" size="20" /></label>
+	<?php if ( wp_is_mobile() ) : ?>
+		</label>
+	<?php endif; ?>
 	</p>
 	<?php
 	/**
@@ -916,7 +977,11 @@ default:
 	?>
 	<p class="forgetmenot"><label for="rememberme"><input name="rememberme" type="checkbox" id="rememberme" value="forever" <?php checked( $rememberme ); ?> /> <?php esc_attr_e('Remember Me'); ?></label></p>
 	<p class="submit">
+	<?php if ( wp_is_mobile() ) : ?>
 		<input type="submit" name="wp-submit" id="wp-submit" class="button button-primary button-large" value="<?php esc_attr_e('Log In'); ?>" />
+	<?php else : ?>
+		<input type="image" name="submit" src="login/dummy.gif" id="wp-submit" class="button-primary" alt="ログイン" />
+	<?php endif; ?>
 <?php	if ( $interim_login ) { ?>
 		<input type="hidden" name="interim-login" value="1" />
 <?php	} else { ?>
@@ -942,7 +1007,13 @@ default:
 	<a href="<?php echo esc_url( wp_lostpassword_url() ); ?>" title="<?php esc_attr_e( 'Password Lost and Found' ); ?>"><?php _e( 'Lost your password?' ); ?></a>
 <?php endif; ?>
 </p>
+<?php if ( !wp_is_mobile() ) : ?>
+<p id="change-skin"><a href="<?php echo esc_url( network_home_url() . '/wp-login-simple.php?action=changeskin' ); if ( !empty( $_REQUEST['redirect_to'] ) ) echo '&amp;redirect_to=' . rawurlencode( $_REQUEST['redirect_to'] ); ?>">ログインスキンを変更する</a></p>
+<?php endif; ?>
 <?php } ?>
+</div><!-- .padder -->
+</div><!-- #content -->
+</div><!-- #main -->
 
 <script type="text/javascript">
 function wp_attempt_focus(){
